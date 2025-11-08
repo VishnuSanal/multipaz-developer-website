@@ -30,9 +30,9 @@ jobs:
       - name: Checkout Kotlin Repository
         uses: actions/checkout@v4
         with:
-          repository: openwallet-foundation/multipaz
+          repository: VishnuSanal/multipaz-identity-credential
           path: kotlin-repo
-          ref: 'main'
+          ref: 'fix-dokka'
           fetch-depth: 0
           fetch-tags: true
 
