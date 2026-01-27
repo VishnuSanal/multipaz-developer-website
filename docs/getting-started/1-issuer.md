@@ -20,6 +20,7 @@ Update `libs.versions.toml`:
 ```toml
 [versions]
 ktor = "2.3.13"
+kotlinxSerializationJson = "1.9.0"
 
 [libraries]
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
@@ -27,6 +28,10 @@ ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ```
 
 Refer to [**this libs.versions.toml code**](https://github.com/openwallet-foundation/multipaz-samples/blob/9ef4472490e8c497f492f94763418afc7cdf5545/MultipazGettingStartedSample/gradle/libs.versions.toml#L45-L49) for the complete example.
@@ -34,25 +39,140 @@ Refer to [**this libs.versions.toml code**](https://github.com/openwallet-founda
 Update `app/build.gradle.kts`:
 
 ```kotlin
-androidMain.dependencies {
+
+plugins {
     // ...
-    implementation(libs.ktor.client.android)
+    alias(libs.plugins.kotlinSerialization)
 }
 
-commonMain.dependencies {
-    // ...
-    implementation(libs.ktor.client.core)
-    // CIO for JVM/Android
-    implementation(libs.ktor.client.cio)
-}
+kotlin {
+    sourceSets {
 
-iosMain.dependencies {
-    // Darwin engine for iOS in iosMain
-    implementation(libs.ktor.client.darwin)
+        androidMain.dependencies {
+            // ...
+            implementation(libs.ktor.client.android)
+        }
+
+        commonMain.dependencies {
+            // ...
+            implementation(libs.ktor.client.core)
+            // CIO for JVM/Android
+            implementation(libs.ktor.client.cio)
+            implementation(libs.kotlinx.serialization.json)
+        }
+
+        iosMain.dependencies {
+            // Darwin engine for iOS in iosMain
+            implementation(libs.ktor.client.darwin)
+        }
+
+    }
 }
 ```
 
 Refer to [**this build.gradle.kts code**](https://github.com/openwallet-foundation/multipaz-samples/blob/9ef4472490e8c497f492f94763418afc7cdf5545/MultipazGettingStartedSample/composeApp/build.gradle.kts#L32-L62) for the complete example.
+
+### **iOS Setup**
+
+#### **Step 1: Configure the `Info.plist` file**
+
+The iOS app requires URL scheme configuration in `Info.plist` to handle deep links and custom URL schemes. `Info.plist` (Information Property List) is a configuration file that contains metadata about your iOS app, including supported URL schemes, app permissions, and other settings.
+
+**Configuring URL Types in Xcode:**
+
+You can configure URL schemes directly in Xcode using the Info tab:
+
+1. Open your iOS app target in Xcode
+2. Select the **Info** tab in the project settings
+3. Expand the **URL Types** section
+4. Click the **+** button to add a new URL Type
+5. Configure each URL scheme with:
+   - **Identifier**: A reverse DNS identifier (e.g., `org.multipaz.samples.wallet`)
+   - **URL Schemes**: The custom scheme name (e.g., `wholesale-test-app`)
+   - **Role**: Typically set to "Viewer" for custom schemes
+
+![Xcode Info.plist URL Types Configuration](/img/info_plist.png)
+
+**Manual Configuration (Alternative):**
+
+If you prefer to edit the XML directly, add the following to your `Info.plist` file:
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+    <!-- Custom URL Scheme for OAuth Callbacks -->
+    <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Viewer</string>
+        <key>CFBundleURLName</key>
+        <string>org.multipaz.samples.wallet</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>get-started-app</string>
+        </array>
+    </dict>
+    
+    <!-- OpenID Credential Offer Scheme -->
+    <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Viewer</string>
+        <key>CFBundleURLName</key>
+        <string>org.multipaz.openid.credential-offer</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>openid-credential-offer</string>
+        </array>
+    </dict>
+    
+    <!-- HAIP Scheme -->
+    <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Viewer</string>
+        <key>CFBundleURLName</key>
+        <string>org.multipaz.openid.haip</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>haip</string>
+        </array>
+    </dict>
+</array>
+```
+
+#### **Step 2: Configure ContentView.swift**
+
+In `ContentView.swift`, add the `.onOpenURL` modifier to handle incoming URLs:
+
+```swift
+struct ContentView: View {
+    var body: some View {
+        ComposeView()
+            .ignoresSafeArea()
+            .onOpenURL(perform: { url in
+                MainViewControllerKt.HandleUrl(url: url.absoluteString)
+            })
+    }
+}
+```
+
+#### **Step 3: Implement URL Handler in MainViewController.kt**
+
+In `MainViewController.kt` (iOS-specific), implement the `HandleUrl` function:
+
+```kotlin
+private val app = App.getInstance()
+
+fun MainViewController() = ComposeUIViewController {
+    app.Content()
+}
+
+fun HandleUrl(url: String) {
+    app.handleUrl(url)
+}
+```
+
+#### **Step 4: Build and Run iOS App**
+
+To test the iOS implementation, you can follow [**these iOS build instructions**](https://developer.multipaz.org/docs/guides/facenet/#ios-build) from our Face Detection & Verification guide.
 
 ## **Android: Permissions and Custom URI Schemes**
 
