@@ -104,6 +104,19 @@ const config = {
         },
       ],
 
+      algolia: {
+        // The application ID provided by Algolia
+        appId: "VCNDSOJNTR",
+
+        // Public API key: it is safe to commit it
+        apiKey: "952725045e5be0fe86e3c6dbca429a57",
+
+        indexName: "Algolia Crawler for Multipaz Developer Website",
+
+        // Optional: see doc section below
+        contextualSearch: true,
+      },
+
       // Replace with your project's social card
       image: 'img/multipaz.png',
       navbar: {
