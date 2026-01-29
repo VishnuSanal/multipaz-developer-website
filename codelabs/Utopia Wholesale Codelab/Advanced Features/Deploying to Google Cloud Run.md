@@ -104,6 +104,22 @@ The following changes were made to `multipaz-records-server/src/main/resources/r
    - Previously, the server generated a random password on each startup
    - This makes the password predictable and manageable for deployment
 
+4. **Database Configuration**: Added `database_connection`, `database_user`, and `database_password` for Cloud SQL
+   ```json
+   "database_connection": "jdbc:postgresql:///multipaz?cloudSqlInstance=YOUR-PROJECT-ID:us-central1:multipaz-db&socketFactory=com.google.cloud.sql.postgres.SocketFactory",
+   "database_user": "multipaz-records",
+   "database_password": "multipaz-records"
+   ```
+
+   :::warning ⚠️ Important: Data Persistence Required
+   **Cloud Run containers are ephemeral** - any data stored in local files will be lost when the container restarts. To persist data, you **must** configure a Cloud SQL database (PostgreSQL or MySQL). Without this configuration, the server will use a file-based HSQLDB database that loses all data on container restart.
+   :::
+
+    - **Why Cloud SQL?** Cloud SQL provides persistent storage that survives container restarts, deployments, and scaling events
+    - **Connection String Format**: The connection string uses Cloud SQL's Unix socket connection via the Cloud SQL Proxy
+    - **Replace `YOUR-PROJECT-ID`**: Update the connection string with your actual GCP project ID
+    - **Database Dependencies**: The project includes `com.google.cloud.sql:postgres-socket-factory` dependency for Cloud SQL connectivity
+
 ---
 
 ## **Deployment Steps**
@@ -144,7 +160,94 @@ EOF
   - Note: Uses `-param server_port=` format (not `--server.port=`) because this is a Ktor server
   - `${PORT:-8080}` uses Cloud Run's PORT environment variable, defaulting to 8080 if not set
 
-### **Step 2: Build the Fat JAR**
+### **Step 2: Set Up Cloud SQL for Data Persistence**
+
+:::warning ⚠️ Critical: Data Persistence
+**This step is required** to prevent data loss. Without Cloud SQL, all data stored in the Records server will be lost when the container restarts or scales.
+:::
+
+Cloud Run containers are ephemeral - any data stored in local files is lost on restart. To persist data, you need to set up a Cloud SQL database:
+
+#### **2.1: Create Cloud SQL Instance**
+
+Create a PostgreSQL instance (this typically takes 2-10 minutes):
+
+```bash
+gcloud sql instances create multipaz-db \
+  --database-version=POSTGRES_15 \
+  --tier=db-f1-micro \
+  --region=us-central1
+```
+
+**Explanation:**
+- `--database-version=POSTGRES_15`: Uses PostgreSQL 15 (you can also use MySQL with `MYSQL_8_0`)
+- `--tier=db-f1-micro`: Smallest instance tier (suitable for development/testing)
+- `--region=us-central1`: Deploy in the same region as your Cloud Run service
+
+#### **2.2: Create Database**
+
+Create a database within the instance:
+
+```bash
+gcloud sql databases create multipaz --instance=multipaz-db
+```
+
+#### **2.3: Create Database User**
+
+Create a user for the application:
+
+```bash
+gcloud sql users create multipaz-records \
+  --instance=multipaz-db \
+  --password=multipaz-records
+```
+
+:::warning ⚠️ Security
+Use a strong password in production. The example uses `multipaz-records` for simplicity.
+:::
+
+#### **2.4: Get Connection Name**
+
+Get the connection name for your Cloud SQL instance:
+
+```bash
+gcloud sql instances describe multipaz-db --format="value(connectionName)"
+```
+
+**Output example:** `YOUR-PROJECT-ID:us-central1:multipaz-db`
+
+Save this connection name - you'll need it in the next step.
+
+#### **2.5: Update Configuration File**
+
+Update `multipaz-records-server/src/main/resources/resources/default_configuration.json` with your Cloud SQL connection details:
+
+```json
+{
+  "server_port": 8080,
+  "base_url": "https://multipaz-records-server-971523157550.us-central1.run.app",
+  "admin_password": "multipaz-records",
+  "database_connection": "jdbc:postgresql:///multipaz?cloudSqlInstance=YOUR-PROJECT-ID:us-central1:multipaz-db&socketFactory=com.google.cloud.sql.postgres.SocketFactory",
+  "database_user": "multipaz-records",
+  "database_password": "multipaz-records",
+  ...
+}
+```
+
+**Replace:**
+- `YOUR-PROJECT-ID` with your actual GCP project ID (from Step 2.4)
+- `multipaz-records` password if you used a different password in Step 2.3
+
+**For MySQL instead of PostgreSQL:**
+```json
+"database_connection": "jdbc:mysql:///multipaz?cloudSqlInstance=YOUR-PROJECT-ID:us-central1:multipaz-db&socketFactory=com.google.cloud.sql.mysql.SocketFactory"
+```
+
+:::tip 💡 Alternative: Environment Variables
+Instead of hardcoding in the config file, you can pass database credentials via environment variables in Step 7 using `--set-env-vars`.
+:::
+
+### **Step 3: Build the Fat JAR**
 
 Build the fat JAR file that includes all dependencies:
 
@@ -160,7 +263,7 @@ Build the fat JAR file that includes all dependencies:
 
 **Note:** The Ktor Gradle plugin creates a fat JAR named `multipaz-records-server-all.jar`. We need to rename it to `app.jar` because the Dockerfile expects `app.jar`.
 
-### **Step 3: Prepare for Cloud Build**
+### **Step 4: Prepare for Cloud Build**
 
 Upload the JAR file to Cloud Shell:
 
@@ -179,7 +282,7 @@ multipaz-records-server/
 └── app.jar
 ```
 
-### **Step 4: Create Environment Variables File**
+### **Step 5: Create Environment Variables File**
 
 Create an `env-vars.yaml` file in the `multipaz-records-server/` directory with the `system_of_record_jwk` variable:
 
@@ -190,7 +293,7 @@ EOF
 ```
 
 :::warning ⚠️ Important
-**Use your own JWK** - Replace the empty string `''` above with your own JWK (JSON Web Key) used for authenticating with the Records server.
+**Use your own JWK** - Replace the empty string `''` above with your own JWK (JSON Web Key) used for authenticating with the Records server. For generating and using a custom JWK, see [Replacing key.jwk in Multipaz Servers](https://developer.multipaz.org/codelabs/Utopia%20Wholesale%20Codelab/Advanced%20Features/Replacing%20JWK/).
 :::
 
 ### **Step 5: Build Docker Image**
@@ -214,15 +317,16 @@ gcloud builds submit multipaz-records-server --tag gcr.io/YOUR-PROJECT-ID/multip
 3. Pushes the image to Google Container Registry
 4. The image is ready to be deployed to Cloud Run
 
-### **Step 6: Deploy to Cloud Run**
+### **Step 7: Deploy to Cloud Run**
 
-Deploy the containerized application to Cloud Run:
+Deploy the containerized application to Cloud Run with Cloud SQL connection:
 
 ```bash
 gcloud run deploy multipaz-records-server \
   --image gcr.io/YOUR-PROJECT-ID/multipaz-records-server \
   --platform managed \
   --region us-central1 \
+  --add-cloudsql-instances=YOUR-PROJECT-ID:us-central1:multipaz-db \
   --env-vars-file multipaz-records-server/env-vars.yaml \
   --allow-unauthenticated
 ```
@@ -231,19 +335,34 @@ gcloud run deploy multipaz-records-server \
 - `--image`: Specifies the Docker image to deploy (from Step 5)
 - `--platform managed`: Uses Google's fully managed Cloud Run platform
 - `--region us-central1`: Deploys to the specified region
-  - Choose a region close to your users for better performance
+    - Choose a region close to your users for better performance
+    - **Important:** Should match the region of your Cloud SQL instance
+- `--add-cloudsql-instances`: **Required for data persistence** - Connects the Cloud Run service to your Cloud SQL instance
+    - Format: `PROJECT-ID:REGION:INSTANCE-NAME`
+    - Replace `YOUR-PROJECT-ID` with your actual GCP project ID
+    - This enables the Cloud SQL Proxy for secure database connections
+    - Without this flag, the database connection will fail
 - `--port`: (Optional) Specifies the port your service listens on
-  - Defaults to 8080 if not specified (Cloud Run's default)
-  - Only needed if your service uses a different port (e.g., `--port 9090`)
-  - Must match the `server_port` in your configuration file
-- `--env-vars-file`: Specifies the environment variables file created in Step 4
+    - Defaults to 8080 if not specified (Cloud Run's default)
+    - Only needed if your service uses a different port (e.g., `--port 9090`)
+    - Must match the `server_port` in your configuration file
+- `--env-vars-file`: Specifies the environment variables file created in Step 5
 - `--allow-unauthenticated`: Makes the service publicly accessible
-  - Remove this flag if you want to require authentication
+    - Remove this flag if you want to require authentication
 
 **After deployment:**
 - Cloud Run will provide a URL like: `https://multipaz-records-server-XXXXX.us-central1.run.app`
 - **Save this URL** - you'll need it to update the `system_of_record_url` in the OpenID4VCI server configuration
 - Update the `base_url` in your Records server configuration file with this URL if needed
+- **Verify data persistence**: Upload some data to the Records server, then restart the service. The data should persist, confirming Cloud SQL is working correctly
+
+:::tip 💡 Troubleshooting Database Connection
+If the service fails to start or you see database connection errors:
+1. Verify Cloud SQL Admin API is enabled: `gcloud services enable sqladmin.googleapis.com`
+2. Check that the service account has Cloud SQL Client role on the instance
+3. Verify the connection name in `--add-cloudsql-instances` matches your instance
+4. Check Cloud Run logs for detailed error messages
+   :::
 
 ---
 
@@ -426,6 +545,25 @@ After deployment, verify both servers are working:
 ### **Issue: Build fails with "app.jar not found"**
 
 **Solution:** Ensure you've copied the JAR file to the deployment directory before running `gcloud builds submit`.
+
+### **Issue: Data disappears after container restart**
+
+**Solution:**
+- Verify you've completed Step 2 (Cloud SQL setup) and configured `database_connection` in `default_configuration.json`
+- Ensure `--add-cloudsql-instances` flag is included in your `gcloud run deploy` command
+- Check that the Cloud SQL instance is running and accessible
+- Verify the database connection string uses the correct project ID and instance name
+- Check Cloud Run logs for database connection errors
+
+### **Issue: Database connection fails**
+
+**Solution:**
+- Verify the Cloud SQL instance exists and is running: `gcloud sql instances list`
+- Check that `--add-cloudsql-instances` uses the correct connection name format: `PROJECT-ID:REGION:INSTANCE-NAME`
+- Ensure the database user and password in the config match what you created in Cloud SQL
+- Verify the database name exists: `gcloud sql databases list --instance=multipaz-db`
+- Check that the Cloud SQL Admin API is enabled
+- Ensure the Cloud Run service account has Cloud SQL Client permissions
 
 ---
 
