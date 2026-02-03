@@ -34,18 +34,24 @@ class App {
     lateinit var documentStore: DocumentStore
 
     suspend fun init() {
-        // ...
-        documentTypeRepository = DocumentTypeRepository().apply {
-        addDocumentType(DrivingLicense.getDocumentType())
+        if (!isAppInitialized) {
+            // ...
+
+            documentTypeRepository = DocumentTypeRepository().apply {
+            addDocumentType(DrivingLicense.getDocumentType())
+            }
+            documentStore = buildDocumentStore(
+                storage = storage,
+                secureAreaRepository = secureAreaRepository
+            ) {}
+
+            // ...
+            isAppInitialized = true
         }
-        documentStore = buildDocumentStore(
-            storage = storage,
-            secureAreaRepository = secureAreaRepository
-        ) {}
     }
 }
 ```
 
 By clearly structuring the setup of `DocumentTypeRepository` and `DocumentStore`, you ensure your app is ready to manage identity documents securely and efficiently. Always perform this setup early in your app lifecycle, after initializing storage and secure areas.
 
-Refer to **[this DocumentStore code](https://github.com/openwallet-foundation/multipaz-samples/blob/7988c38259d62972a93b10a5fc2f5c43e6a789d8/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L110-L117)** for the complete example.
+Refer to **[this DocumentStore code](https://github.com/openwallet-foundation/multipaz-samples/blob/5143fd7e31e7c61bebffd38b6e496c0cde855d1f/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L132-L139)** for the complete example.
