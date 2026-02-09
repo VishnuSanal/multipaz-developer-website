@@ -64,7 +64,7 @@ jobs:
         if: steps.cache-kdocs.outputs.cache-hit != 'true'
         run: |
           cd kotlin-repo
-          ./gradlew dokkaHtmlMultiModule
+          ./gradlew dokkaGenerate
           echo "KDocs generated successfully"
           
       - name: Setup Node.js
