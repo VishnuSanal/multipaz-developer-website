@@ -137,10 +137,12 @@ const config = {
             position: 'left',
           },
           {
-            label: 'API ↗',
-            href: '/kdocs/index.html',
-            target: '_blank',
+            label: 'API Docs ↗',
             position: 'left',
+            items: [
+              { label: 'Multipaz SDK', href: '/kdocs/index.html', target: '_blank' },
+              { label: 'Extras SDK', href: '/kdocs-extras/index.html', target: '_blank' },
+            ],
           },
           {
             label: 'Applications',

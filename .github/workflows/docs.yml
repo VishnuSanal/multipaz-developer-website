@@ -6,7 +6,7 @@ on:
       - main
   workflow_dispatch:
   repository_dispatch:
-    types: [kotlin-repo-updated]
+    types: [multipaz-repo-updated, extras-repo-updated]
 
 permissions:
   contents: read
@@ -27,22 +27,53 @@ jobs:
         with:
           path: docusaurus-repo
 
-      - name: Checkout Kotlin Repository
+      - name: Checkout Multipaz Repository
         uses: actions/checkout@v4
         with:
           repository: openwallet-foundation/multipaz
-          path: kotlin-repo
+          path: multipaz-repo
           ref: 'main'
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Get Kotlin Repo Commit Hash
-        id: kotlin-commit
+      - name: Get Multipaz Repo Commit Hash
+        id: multipaz-commit-hash
         run: |
-          cd kotlin-repo
+          cd multipaz-repo
           COMMIT_HASH=$(git rev-parse HEAD)
           echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
           echo "Latest commit hash: $COMMIT_HASH"
+
+      - name: Cache Multipaz KDocs
+        id: cache-multipaz-kdocs
+        uses: actions/cache@v3
+        with:
+          path: multipaz-repo/build/dokka
+          key: kdocs-${{ steps.multipaz-commit-hash.outputs.commit_hash }}
+
+      - name: Checkout Multipaz Extras Repository
+        uses: actions/checkout@v4
+        with:
+          repository: openwallet-foundation/multipaz-extras
+          path: extras-repo
+          ref: 'main'
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get Extras Repo Commit Hash
+        id: extras-commit-hash
+        run: |
+          cd extras-repo
+          COMMIT_HASH=$(git rev-parse HEAD)
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "Latest commit hash: $COMMIT_HASH"
+
+      - name: Cache Extras KDocs
+        id: cache-extras-kdocs
+        uses: actions/cache@v3
+        with:
+          path: extras-repo/build/dokka
+          key: kdocs-${{ steps.extras-commit-hash.outputs.commit_hash }}
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -51,22 +82,20 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      # Cache the Dokka output using the commit hash
-      - name: Cache KDocs
-        id: cache-kdocs
-        uses: actions/cache@v3
-        with:
-          path: kotlin-repo/build/dokka
-          key: kdocs-${{ steps.kotlin-commit.outputs.commit_hash }}
-
-      # Only run Dokka if there was a cache miss
-      - name: Generate KDocs with Dokka
-        if: steps.cache-kdocs.outputs.cache-hit != 'true'
+      - name: Generate Multipaz KDocs with Dokka
+        if: steps.cache-multipaz-kdocs.outputs.cache-hit != 'true'
         run: |
-          cd kotlin-repo
+          cd multipaz-repo
           ./gradlew dokkaGenerate
           echo "KDocs generated successfully"
-          
+
+      - name: Generate Extras KDocs with Dokka
+        if: steps.cache-extras-kdocs.outputs.cache-hit != 'true'
+        run: |
+          cd extras-repo
+          ./gradlew dokkaGenerate
+          echo "KDocs generated successfully"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -74,8 +103,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: docusaurus-repo/package-lock.json
 
-      - name: Create API directory in Docusaurus static folder
-        run: mkdir -p docusaurus-repo/static/kdocs
+      - name: Create API directories in Docusaurus static folder
+        run: |
+          mkdir -p docusaurus-repo/static/kdocs
+          mkdir -p docusaurus-repo/static/kdocs-extras
 
       - name: Copy KDocs and markdown files to Docusaurus
         run: ./docusaurus-repo/copy_docs.sh
