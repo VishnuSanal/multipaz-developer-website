@@ -82,24 +82,24 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Generate Multipaz KDocs with Dokka
-        if: steps.cache-multipaz-kdocs.outputs.cache-hit != 'true'
-        run: |
-          cd multipaz-repo
-          ./gradlew dokkaGenerate
-          echo "KDocs generated successfully"
+      # - name: Generate Multipaz KDocs with Dokka
+      #   if: steps.cache-multipaz-kdocs.outputs.cache-hit != 'true'
+      #   run: |
+      #     cd multipaz-repo
+      #     ./gradlew dokkaGenerate
+      #     echo "KDocs generated successfully"
 
-      - name: Generate Extras KDocs with Dokka
-        if: steps.cache-extras-kdocs.outputs.cache-hit != 'true'
-        run: |
-          cd extras-repo
-          ./gradlew dokkaGenerate
-          echo "KDocs generated successfully"
+      # - name: Generate Extras KDocs with Dokka
+      #   if: steps.cache-extras-kdocs.outputs.cache-hit != 'true'
+      #   run: |
+      #     cd extras-repo
+      #     ./gradlew dokkaGenerate
+      #     echo "KDocs generated successfully"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: docusaurus-repo/package-lock.json
 

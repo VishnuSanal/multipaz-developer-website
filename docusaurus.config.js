@@ -115,6 +115,8 @@ const config = {
 
         // Optional: see doc section below
         contextualSearch: true,
+
+        askAi: 'paBzPuTfbCsB',
       },
 
       // Replace with your project's social card
