@@ -30,7 +30,7 @@ jobs:
       - name: Checkout Multipaz Repository
         uses: actions/checkout@v4
         with:
-          repository: openwallet-foundation/multipaz
+          repository: VishnuSanal/multipaz-identity-credential
           path: multipaz-repo
           ref: 'main'
           fetch-depth: 0
