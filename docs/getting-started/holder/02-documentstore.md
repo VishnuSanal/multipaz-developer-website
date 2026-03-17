@@ -54,4 +54,4 @@ class App {
 
 By clearly structuring the setup of `DocumentTypeRepository` and `DocumentStore`, you ensure your app is ready to manage identity documents securely and efficiently. Always perform this setup early in your app lifecycle, after initializing storage and secure areas.
 
-Refer to **[this DocumentStore code](https://github.com/openwallet-foundation/multipaz-samples/blob/688bf8394cb19a73c6bd8db861eb6e57d96e4c41/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L130-L137)** for the complete example.
+Refer to **[this DocumentStore code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L130-L137)** for the complete example.

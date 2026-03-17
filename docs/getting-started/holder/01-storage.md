@@ -77,4 +77,4 @@ class App {
 }
 ```
 
-Refer to **[this storage code](https://github.com/openwallet-foundation/multipaz-samples/blob/688bf8394cb19a73c6bd8db861eb6e57d96e4c41/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L118-L128)** for the complete example.
+Refer to **[this storage code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L118-L128)** for the complete example.
