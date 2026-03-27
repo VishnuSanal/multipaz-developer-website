@@ -30,9 +30,9 @@ jobs:
       - name: Checkout Multipaz Repository
         uses: actions/checkout@v4
         with:
-          repository: openwallet-foundation/multipaz
+          repository: VishnuSanal/multipaz-identity-credential
           path: multipaz-repo
-          ref: 'main'
+          ref: 'known-subclass-plugin'
           fetch-depth: 0
           fetch-tags: true
 
@@ -51,29 +51,29 @@ jobs:
           path: multipaz-repo/build/dokka
           key: kdocs-${{ steps.multipaz-commit-hash.outputs.commit_hash }}
 
-      - name: Checkout Multipaz Extras Repository
-        uses: actions/checkout@v4
-        with:
-          repository: openwallet-foundation/multipaz-extras
-          path: extras-repo
-          ref: 'main'
-          fetch-depth: 0
-          fetch-tags: true
+      # - name: Checkout Multipaz Extras Repository
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: openwallet-foundation/multipaz-extras
+      #     path: extras-repo
+      #     ref: 'main'
+      #     fetch-depth: 0
+      #     fetch-tags: true
 
-      - name: Get Extras Repo Commit Hash
-        id: extras-commit-hash
-        run: |
-          cd extras-repo
-          COMMIT_HASH=$(git rev-parse HEAD)
-          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
-          echo "Latest commit hash: $COMMIT_HASH"
+      # - name: Get Extras Repo Commit Hash
+      #   id: extras-commit-hash
+      #   run: |
+      #     cd extras-repo
+      #     COMMIT_HASH=$(git rev-parse HEAD)
+      #     echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+      #     echo "Latest commit hash: $COMMIT_HASH"
 
-      - name: Cache Extras KDocs
-        id: cache-extras-kdocs
-        uses: actions/cache@v3
-        with:
-          path: extras-repo/build/dokka
-          key: kdocs-${{ steps.extras-commit-hash.outputs.commit_hash }}
+      # - name: Cache Extras KDocs
+      #   id: cache-extras-kdocs
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: extras-repo/build/dokka
+      #     key: kdocs-${{ steps.extras-commit-hash.outputs.commit_hash }}
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -89,12 +89,12 @@ jobs:
           ./gradlew dokkaGenerate
           echo "KDocs generated successfully"
 
-      - name: Generate Extras KDocs with Dokka
-        if: steps.cache-extras-kdocs.outputs.cache-hit != 'true'
-        run: |
-          cd extras-repo
-          ./gradlew dokkaGenerate
-          echo "KDocs generated successfully"
+      # - name: Generate Extras KDocs with Dokka
+      #   if: steps.cache-extras-kdocs.outputs.cache-hit != 'true'
+      #   run: |
+      #     cd extras-repo
+      #     ./gradlew dokkaGenerate
+      #     echo "KDocs generated successfully"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
