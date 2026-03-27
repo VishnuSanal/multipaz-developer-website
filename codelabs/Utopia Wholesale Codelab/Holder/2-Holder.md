@@ -147,40 +147,62 @@ We will use components just like below
 
 ### **Step 1: Configure PresentmentSource in Koin**
 
+#### **1.1 Understanding DigitalCredentialsRegistrationManager**
+
+The `DigitalCredentialsRegistrationManager` is a centralized class that handles W3C Digital Credentials API registration for Android. This fixes glitches where credentials weren't properly available for web and native verification after issuance.
+
+**Key features:**
+
+* **Thread-safe**: Uses a `Mutex` to prevent concurrent registration attempts
+* **Conditional execution**: Only runs on Android (checked via `shouldRegisterDigitalCredentialsInCommonModule()`)
+* **Error handling**: Catches and logs registration failures without crashing
+
+#### **1.2 Configure Components in Koin**
+
 In your Koin module (`MultipazModule.kt`), configure the `PresentmentSource` which handles credential presentation to verifiers. The `PresentmentSource` is responsible for managing the presentation flow and supporting different credential formats.
+
+```kotlin
+//TODO: define DigitalCredentialsRegistrationManager in Koin module
+single<DigitalCredentialsRegistrationManager> {
+    DigitalCredentialsRegistrationManager(
+        documentStore = get(),
+        documentTypeRepository = get(),
+        settingsModel = get(),
+    )
+}
+```
 
 ```kotlin
 //TODO: define PresentmentSource in Koin module
 single<PresentmentSource> {
-    runBlocking {
-        val digitalCredentials = DigitalCredentials.getDefault()
-        if (digitalCredentials.registerAvailable) {
-            digitalCredentials.register(
-                documentStore = get(),
-                documentTypeRepository = get(),
-            )
-        }
+    val settingsModel: AppSettingsModel = get()
+    val requireAuthentication = settingsModel.presentmentRequireAuthentication.value
+    val documentStore: DocumentStore = get()
+    val documentTypeRepository: DocumentTypeRepository = get()
 
-        SimplePresentmentSource(
-            documentStore = get(),
-            documentTypeRepository = get(),
-            preferSignatureToKeyAgreement = true,
-            // Match domains used when storing credentials via OpenID4VCI
-            domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-            domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-            domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-            domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH,
-        )
+    // Keep an initial eager refresh here so existing startup behavior is preserved.
+    if (shouldRegisterDigitalCredentialsInCommonModule()) {
+        runBlocking { get<DigitalCredentialsRegistrationManager>().refresh("PresentmentSource init") }
     }
+
+    SimplePresentmentSource(
+        documentStore = get(),
+        documentTypeRepository = get(),
+        preferSignatureToKeyAgreement = true,
+        // Match domains used when storing credentials via OpenID4VCI
+        domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
+        domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
+        domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
+        domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH,
+    )
 }
 ```
 
 **Key points:**
 
+* `DigitalCredentialsRegistrationManager` is a centralized manager that handles W3C Digital Credentials API registration for Android. This ensures credentials are properly registered after issuance.
 * `PresentmentSource` is configured as a singleton in the Koin module.
-* `DigitalCredentials.getDefault()` provides access to system-level digital credentials (Android-only).
-* Check `registerAvailable` before registering to ensure the device supports system-level credential sharing.
-* `digitalCredentials.register()` exports credentials from the `documentStore` for system-level access with the specified `documentTypeRepository`.
+* The registration manager is called during `PresentmentSource` initialization, but the centralized manager allows for refreshes after credential issuance events.
 * `SimplePresentmentSource` is created with all required dependencies injected via Koin's `get()` function:
   * `documentStore` - For accessing stored credentials
   * `documentTypeRepository` - For managing document types
@@ -192,7 +214,6 @@ single<PresentmentSource> {
   * `domainKeyBoundSdJwt` - Domain for key-bound SD-JWT credentials
 
 The `PresentmentModel` (which manages the presentation lifecycle and state transitions like `IDLE`, `CONNECTING`, `COMPLETED`, etc.) is also configured in the Koin module and can be injected wherever needed in your app.
-
 
 ### **Step 2: Add a QR Presentation Button**
 
