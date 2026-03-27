@@ -1,0 +1,224 @@
+From a1d22950805ad87686b6e0b84238d71f186e84f8 Mon Sep 17 00:00:00 2001
+From: Vishnu Sanal T <50027064+VishnuSanal@users.noreply.github.com>
+Date: Wed, 25 Mar 2026 06:31:40 +0530
+Subject: [PATCH] fix web and native verification glitches in the codelab (#84)
+
+Signed-off-by: Vishnu Sanal T <vishnusanalt@gmail.com>
+---
+ .../samples/wallet/cmp/UtopiaSampleApp.kt     | 24 ++++++++-
+ .../samples/wallet/cmp/di/MultipazModule.kt   | 28 ++++------
+ .../samples/wallet/cmp/ui/HomeScreen.kt       | 15 ++++--
+ .../DigitalCredentialsRegistrationManager.kt  | 51 +++++++++++++++++++
+ 4 files changed, 96 insertions(+), 22 deletions(-)
+ create mode 100644 MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/util/DigitalCredentialsRegistrationManager.kt
+
+diff --git a/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/UtopiaSampleApp.kt b/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/UtopiaSampleApp.kt
+index 9ec88bf..ebc5f7b 100644
+--- a/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/UtopiaSampleApp.kt
++++ b/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/UtopiaSampleApp.kt
+@@ -3,14 +3,17 @@ package org.multipaz.samples.wallet.cmp
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.LaunchedEffect
++import androidx.compose.runtime.rememberCoroutineScope
+ import androidx.navigation.compose.NavHost
+ import androidx.navigation.compose.composable
+ import androidx.navigation.compose.rememberNavController
+ import kotlinx.coroutines.channels.Channel
++import kotlinx.coroutines.launch
+ import org.koin.compose.koinInject
+ import org.multipaz.provisioning.ProvisioningModel
+ import org.multipaz.samples.wallet.cmp.ui.HomeScreen
+ import org.multipaz.samples.wallet.cmp.ui.ProvisioningTestScreen
++import org.multipaz.samples.wallet.cmp.util.DigitalCredentialsRegistrationManager
+ import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
+ import org.multipaz.util.Logger
+ 
+@@ -21,9 +24,11 @@ fun UtopiaSampleApp(
+     credentialOffers: Channel<String>,
+     provisioningModel: ProvisioningModel = koinInject(),
+     provisioningSupport: ProvisioningSupport = koinInject(),
++    registrationManager: DigitalCredentialsRegistrationManager = koinInject(),
+ ) {
+     MaterialTheme {
+         val navController = rememberNavController()
++        val coroutineScope = rememberCoroutineScope()
+ 
+         NavHost(
+             navController = navController,
+@@ -36,11 +41,28 @@ fun UtopiaSampleApp(
+             composable("provisioning") {
+                 Logger.i(TAG, "NavHost: Rendering 'provisioning' route")
+                 ProvisioningTestScreen(
+-                    onNavigateToMain = { navController.navigate("main") },
++                    onNavigateToMain = {
++                        coroutineScope.launch {
++                            registrationManager.refresh("return from provisioning screen")
++                        }
++                        navController.popBackStack("main", inclusive = false)
++                    },
+                 )
+             }
+         }
+ 
++        LaunchedEffect(Unit) {
++            registrationManager.refresh("app start")
++        }
++
++        LaunchedEffect(provisioningModel) {
++            provisioningModel.state.collect { state ->
++                if (state == ProvisioningModel.CredentialsIssued) {
++                    registrationManager.refresh("credentials issued")
++                }
++            }
++        }
++
+         // Use the working pattern from identity-credential project
+         LaunchedEffect(true) {
+             while (true) {
+diff --git a/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/di/MultipazModule.kt b/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/di/MultipazModule.kt
+index d151d6a..e98048f 100644
+--- a/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/di/MultipazModule.kt
++++ b/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/di/MultipazModule.kt
+@@ -8,8 +8,6 @@ import kotlinx.coroutines.withContext
+ import org.koin.dsl.module
+ import org.multipaz.crypto.Algorithm
+ import org.multipaz.crypto.X509Cert
+-import org.multipaz.digitalcredentials.DigitalCredentials
+-import org.multipaz.digitalcredentials.getDefault
+ import org.multipaz.document.DocumentStore
+ import org.multipaz.document.buildDocumentStore
+ import org.multipaz.documenttype.DocumentTypeRepository
+@@ -27,6 +25,7 @@ import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
+ import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
+ import org.multipaz.rpc.handler.RpcAuthClientSession
+ import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
++import org.multipaz.samples.wallet.cmp.util.DigitalCredentialsRegistrationManager
+ import org.multipaz.samples.wallet.cmp.util.OpenID4VCILocalBackend
+ import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
+ import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport.Companion.APP_LINK_BASE_URL
+@@ -166,28 +165,23 @@ val multipazModule =
+             }
+         }
+ 
++        single<DigitalCredentialsRegistrationManager> {
++            DigitalCredentialsRegistrationManager(
++                documentStore = get(),
++                documentTypeRepository = get(),
++                settingsModel = get(),
++            )
++        }
++
+         single<PresentmentSource> {
+             val settingsModel: AppSettingsModel = get()
+             val requireAuthentication = settingsModel.presentmentRequireAuthentication.value
+             val documentStore: DocumentStore = get()
+             val documentTypeRepository: DocumentTypeRepository = get()
+ 
+-            // Android registers here; iOS uses IosDocumentProviderBridge with entitlement-filtered types.
++            // Keep an initial eager refresh here so existing startup behavior is preserved.
+             if (shouldRegisterDigitalCredentialsInCommonModule()) {
+-                runBlocking {
+-                    val digitalCredentials = DigitalCredentials.getDefault()
+-                    if (digitalCredentials.registerAvailable) {
+-                        try {
+-                            digitalCredentials.register(
+-                                documentStore = documentStore,
+-                                documentTypeRepository = documentTypeRepository,
+-                                selectedProtocols = settingsModel.dcApiProtocols.value,
+-                            )
+-                        } catch (t: Throwable) {
+-                            Logger.w("DigitalCredentials", "Initial DC API registration failed", t)
+-                        }
+-                    }
+-                }
++                runBlocking { get<DigitalCredentialsRegistrationManager>().refresh("PresentmentSource init") }
+             }
+ 
+             SimplePresentmentSource(
+diff --git a/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/ui/HomeScreen.kt b/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/ui/HomeScreen.kt
+index 9fd8b80..8e25a34 100644
+--- a/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/ui/HomeScreen.kt
++++ b/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/ui/HomeScreen.kt
+@@ -36,10 +36,17 @@ fun HomeScreen(documentStore: DocumentStore = koinInject()) {
+     val tabs = listOf("Explore", "Account")
+     var hasCredentials by remember { mutableStateOf<Boolean?>(null) }
+ 
+-    LaunchedEffect(Unit) {
+-        val hasCred = documentStore.hasAnyUsableCredential()
+-        hasCredentials = hasCred
+-        Logger.i(TAG, "AccountScreen: hasAnyUsableCredential: $hasCred")
++    LaunchedEffect(documentStore) {
++        suspend fun refreshCredentials() {
++            val hasCred = documentStore.hasAnyUsableCredential()
++            hasCredentials = hasCred
++            Logger.i(TAG, "AccountScreen: hasAnyUsableCredential: $hasCred")
++        }
++
++        refreshCredentials()
++        documentStore.eventFlow.collect {
++            refreshCredentials()
++        }
+     }
+ 
+     Scaffold(
+diff --git a/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/util/DigitalCredentialsRegistrationManager.kt b/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/util/DigitalCredentialsRegistrationManager.kt
+new file mode 100644
+index 0000000..5654831
+--- /dev/null
++++ b/MultipazCodelab/Holder/composeApp/src/commonMain/kotlin/org/multipaz/samples/wallet/cmp/util/DigitalCredentialsRegistrationManager.kt
+@@ -0,0 +1,51 @@
++package org.multipaz.samples.wallet.cmp.util
++
++import kotlinx.coroutines.sync.Mutex
++import kotlinx.coroutines.sync.withLock
++import org.multipaz.digitalcredentials.DigitalCredentials
++import org.multipaz.digitalcredentials.getDefault
++import org.multipaz.document.DocumentStore
++import org.multipaz.documenttype.DocumentTypeRepository
++import org.multipaz.util.Logger
++
++private const val TAG = "DigitalCredentialsReg"
++
++/**
++ * Centralizes Android-side W3C DC API registration so it can be refreshed after issuance
++ * without depending on PresentmentSource re-instantiation.
++ */
++class DigitalCredentialsRegistrationManager(
++    private val documentStore: DocumentStore,
++    private val documentTypeRepository: DocumentTypeRepository,
++    private val settingsModel: AppSettingsModel,
++) {
++    private val registerMutex = Mutex()
++
++    suspend fun refresh(reason: String) {
++        if (!shouldRegisterDigitalCredentialsInCommonModule()) {
++            return
++        }
++
++        registerMutex.withLock {
++            val digitalCredentials: DigitalCredentials = DigitalCredentials.getDefault()
++            if (!digitalCredentials.registerAvailable) {
++                Logger.i(TAG, "Skipping register: API not available ($reason)")
++                return
++            }
++
++            try {
++                digitalCredentials.register(
++                    documentStore = documentStore,
++                    documentTypeRepository = documentTypeRepository,
++                    selectedProtocols = settingsModel.dcApiProtocols.value,
++                )
++                Logger.i(
++                    TAG,
++                    "Digital credentials registration refreshed ($reason)",
++                )
++            } catch (t: Throwable) {
++                Logger.w(TAG, "Digital credentials registration refresh failed ($reason)", t)
++            }
++        }
++    }
++}
+-- 
+2.53.0
+

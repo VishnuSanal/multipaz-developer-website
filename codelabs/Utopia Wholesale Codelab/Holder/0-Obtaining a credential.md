@@ -511,7 +511,36 @@ EvidenceRequestWebView is called inside Authorize function. The Authorize functi
 
 It launches the external browser instead and manages the OAuth flow through app links.
 
-### **Step 5 (Optional): APP_LINK_SERVER Configuration and OAuth Callback Handling**
+### **Step 5: Credential Registration and Navigation**
+
+After credentials are issued, the app needs to properly register them with the W3C Digital Credentials API (on Android) so they're available for web and native verification.
+
+#### **5.1 App-Level Registration Refresh**
+
+In `UtopiaSampleApp.kt`, add the following `LaunchedEffect` blocks to refresh credential registration at key moments:
+
+```kotlin
+// TODO: implement DC registration refreshing 
+
+LaunchedEffect(Unit) {
+    registrationManager.refresh("app start")
+}
+
+LaunchedEffect(provisioningModel) {
+    provisioningModel.state.collect { state ->
+        if (state == ProvisioningModel.CredentialsIssued) {
+            registrationManager.refresh("credentials issued")
+        }
+    }
+}
+```
+
+**Key changes:**
+- **Refresh on app start**: `LaunchedEffect(Unit)` runs once when the app starts
+- **Refresh when credentials are issued**: Monitor `provisioningModel.state` and refresh when state becomes `CredentialsIssued`
+- **Refresh when returning from provisioning**: Call `refresh()` before navigating back to main screen using `popBackStack()` instead of `navigate()` to properly manage the back stack (already implemented)
+
+### **Step 6 (Optional): APP_LINK_SERVER Configuration and OAuth Callback Handling**
 
 | Info: This section explains an optional configuration. The Wholesale Codelab uses custom schemes by default, so the app should work without applying these steps, since custom intents do not require verification. |
 | :---- |
@@ -661,7 +690,7 @@ For iOS, the custom URL scheme is configured in `Info.plist`:
 * Platform automatically verifies the trust relationship
 * More secure but requires server configuration
 
-### **Step 6 (Optional): Set up your Own Credential Server**
+### **Step 7 (Optional): Set up your Own Credential Server**
 
 If you are setting up your own credential server, the steps below will guide you through configuring
 both Android and iOS apps.
