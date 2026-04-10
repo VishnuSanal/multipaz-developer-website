@@ -10,9 +10,42 @@ The steps below assume you’ve already set up a **Kotlin Multiplatform (KMP)** 
 
 > 💡 You can quickly create a KMP project using the official [JetBrains wizard](https://kmp.jetbrains.com/?android=true&ios=true&iosui=compose&includeTests=true)
 
+## Project Structure
+
+The Getting Started Sample uses a **modularized architecture** with the following KMP modules. You'll create each module progressively as you follow the guide. Feature modules are added in the sections that need them.
+
+| Module | Purpose | Created in |
+|--------|---------|------------|
+| `core` | Shared infrastructure: storage, document store, trust management, platform utils (`AppContainer`) | This guide |
+| `feature/presentment` | QR code and BLE presentment UI | [Presentation](./holder/presentation) |
+| `feature/provisioning` | OpenID4VCI credential provisioning | [Issuer](./issuer) |
+| `feature/verification` | W3C Digital Credentials verification (native) | [Native Verification guide](/docs/guides/native-verification) |
+| `feature/biometrics` | Face detection and matching | [Face Detection guide](/docs/guides/facenet) |
+| `composeApp` | Main app shell, navigation, and composition of feature modules | This guide |
+
+### Create the `:core` module
+
+:::tip Module creation
+To create a new module: **File → New → New Module → Kotlin Multiplatform Shared Module**. Name it as shown in the table above and configure the package name (e.g., `org.multipaz.getstarted.core` for `:core`).
+:::
+
+Also update the `composeApp/build.gradle.kts` to depend on `:core`:
+
+```kotlin
+// composeApp/build.gradle.kts
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            // ... other dependencies
+            implementation(project(":core"))
+        }
+    }
+}
+```
+
 ## Installation of Dependencies​
 
-To get started with Multipaz, you need to add the necessary dependencies to your project. This guide assumes you are using Gradle as your build system.
+To get started with Multipaz, you need to add the necessary dependencies to your project.
 
 * Add the google repository to `settings.gradle.kts` file
 
@@ -62,9 +95,11 @@ kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versio
 
 Refer to **[this libs.versions.toml code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/gradle/libs.versions.toml#L41-L48)** for the complete example.
 
-* Add the following to your module level `build.gradle.kts` file (usually `composeApp/build.gradle.kts`):
+* Add the following to your module level `build.gradle.kts` files for the `composeApp` module & the `core` module:
 
 ```kotlin
+// composeApp/build.gradle.kts
+// core/build.gradle.kts
 plugins {
     // ...
     alias(libs.plugins.kotlinSerialization)
@@ -92,6 +127,7 @@ kotlin {
 * Update the project to use Java 17 / JVM 17:
 
 ```kotlin
+// composeApp/build.gradle.kts
 kotlin {
    jvmToolchain(17)
 
@@ -115,49 +151,81 @@ Refer to **[this build.gradle.kts code](https://github.com/openwallet-foundation
 
 You might also want to check out other libraries in the Multipaz ecosystem, from Multipaz [here](https://mvnrepository.com/search?q=multipaz).
 
-### Initialize `App.kt`
+### Initialize `AppContainer`
 
-App Class is the main class that holds all the core logic and state for the app.
+`AppContainer` is the central interface (defined in the `core` module) that holds all shared infrastructure — storage, document management, trust management, and presentment source.
 
-We are splitting `App.kt` into multiple sections for ease of use wit multiple Multipaz components.
+The `App` class in `composeApp` delegates to `AppContainer` for shared state and manages provisioning and navigation.
 
-- **Properties**: Variables for storage, document management, trust management, and presentment.
-- **Initialization**: Sets up storage, document types, creates a sample document, configures trusted certificates, and initializes different model classes.
-    - `suspend fun init()`
-- **UI**: A Composable function that builds the app’s user interface using Jepack Compose components. It shows initialization status, and hosts a the `NavHost` for composables for different screens.
-    - `@Composable fun Content()`
-- **Companion Object**: Provides a singleton instance of App and holds shared models.
-    - `fun getInstance(): App`
-
-* To support secure prompts such as **biometric authentication**, **passphrases**, and **NFC dialogs** in a consistent and platform-specific way, we now initialize `PromptDialogs` by passing a `PromptModel`.
-* Multipaz provides a pre-initialized `promptModel` object that can be imported from `org.multipaz.util.Platform.promptModel`.
+* To support secure prompts such as **biometric authentication**, **passphrases**, and **NFC dialogs** in a consistent and platform-specific way, we initialize `PromptDialogs` by passing `AppContainer.promptModel`.
+* Multipaz provides a pre-initialized `promptModel` object available via `AppContainer.promptModel`.
 
 ```kotlin
-// commonMain/App.kt
+// core/src/commonMain/kotlin/.../core/AppContainer.kt
+interface AppContainer {
+
+    val isInitialized: Boolean
+
+    suspend fun init()
+
+    companion object {
+        val promptModel: PromptModel = org.multipaz.util.Platform.promptModel
+
+        private var instance: AppContainer? = null
+        fun getInstance(): AppContainer {
+            if (instance == null) {
+                instance = AppContainerImpl()
+            }
+            return instance!!
+        }
+    }
+}
+```
+
+`AppContainerImpl` provides the concrete implementation.
+
+```kotlin
+// core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
+class AppContainerImpl : AppContainer {
+
+    override var isInitialized = false
+
+    @OptIn(ExperimentalTime::class)
+    override suspend fun init() {
+        if (isInitialized) return
+
+        isInitialized = true
+    }
+}
+```
+
+### Wire implementations using `App.kt` class
+
+```kotlin
+// composeApp/src/commonMain/kotlin/.../App.kt
 class App {
 
-    val appName = "Multipaz Getting Started Sample"
-    val appIcon = Res.drawable.compose_multiplatform
+    private val container = AppContainer.getInstance()
 
-    var isAppInitialized = false
+    var isInitialized = false
 
     suspend fun init() {
-        if (!isAppInitialized) {
-            isAppInitialized = true
-        }
+        if (isInitialized) return
+        container.init()
+
+        isInitialized = true
     }
 
     @Composable
-    @Preview
     fun Content() {
 
         val navController = rememberNavController()
-        val isUIInitialized = remember { mutableStateOf(false) }
+        val isInitialized = remember { mutableStateOf(false) }
 
-        if (!isUIInitialized.value) {
+        if (!isInitialized.value) {
             CoroutineScope(Dispatchers.Main).launch {
                 init()
-                isUIInitialized.value = true
+                isInitialized.value = true
             }
 
             Column(
@@ -171,8 +239,7 @@ class App {
         }
 
         MaterialTheme {
-            // This ensures all prompts inherit the app's main style
-            PromptDialogs(promptModel)
+            PromptDialogs(AppContainer.promptModel)
 
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -186,19 +253,16 @@ class App {
                 ) {
                     composable<Destination.HomeDestination> {
                         HomeScreen(
-                            app = this@App,
+                            container = container,
                             navController = navController,
                         )
                     }
                 }
-
             }
         }
     }
 
     companion object {
-        val promptModel = org.multipaz.util.Platform.promptModel
-
         private var app: App? = null
         fun getInstance(): App {
             if (app == null) {
@@ -214,14 +278,14 @@ class App {
 
 Refer to **[this App.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt)** for the complete example.
 
-#### Define `HomeScreen.kt` Composable
+### Define `HomeScreen.kt` Composable
 
 `HomeScreen` is a composable function that handles the UI according to the app state - viz. handle permissions, displays buttons or QR codes, or show the issuance and presentation UI. You can use the following code in `HomeScreen.kt`. It currently only uses a placeholder `Text` composable.
 
 ```kotlin
 @Composable
 fun HomeScreen(
-    app: App,
+    container: AppContainer,
     navController: NavController,
     identityIssuer: String = "Multipaz Getting Started Sample"
 ) {
