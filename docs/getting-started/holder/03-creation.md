@@ -3,7 +3,9 @@ title: 🆔 Creation of an mDoc
 sidebar_position: 3
 ---
 
-After initializing your `DocumentStore` and related components, you can proceed to create an mDoc (mobile Document) credential. This section guides you through creating a Document and generating a standards-compliant mDoc credential. The following code should go into the `suspend fun init()` in `App.kt`.
+After initializing your `DocumentStore` and related components, you can proceed to create an mDoc (mobile Document) credential. This section guides you through creating a Document and generating a standards-compliant mDoc credential.
+
+**Note:** The following code should go into the `suspend fun init()` in `AppContainerImpl.kt` (in the `core` module).
 
 ### Creating an MdocCredential
 
@@ -29,7 +31,7 @@ val iacaCert =
     X509Cert.fromPem(Res.readBytes("files/iaca_certificate.pem").decodeToString())
 ```
 
-These cerfiticate files can be downloaded from the following links. They should be placed inside `commonMain/composeResources/files`:
+These cerfiticate files can be downloaded from the following links. They should be placed inside `core/src/commonMain/composeResources/files`:
 
 * [**iaca_certificate.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/composeResources/files/iaca_certificate.pem)
 
@@ -65,20 +67,9 @@ Method: Use `DocumentStore#createDocument` to create a new document.
 ```kotlin
 if (documentStore.listDocuments().isEmpty()) {
     val document = documentStore.createDocument(
-        displayName = SAMPLE_DOCUMENT_DISPLAY_NAME,
-        typeDisplayName = SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME,
+        displayName = CredentialDomains.SAMPLE_DOCUMENT_DISPLAY_NAME,
+        typeDisplayName = CredentialDomains.SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME,
     )
-}
-```
-
-Pleasae make sure to define these constants in `App.kt`.
-
-```kotlin
-class App {
-    companion object {
-        const val SAMPLE_DOCUMENT_DISPLAY_NAME = "Erika's Driving License"
-        const val SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME = "Utopia Driving License"
-    }
 }
 ```
 
@@ -106,19 +97,8 @@ if (documentStore.listDocuments().isEmpty()) {
            signedAt = signedAt,
            validFrom = validFrom,
            validUntil = validUntil,
-           domain = CREDENTIAL_DOMAIN_MDOC_USER_AUTH
+           domain = CredentialDomains.MDOC_USER_AUTH
        )
-}
-```
-
-Please add the following declaration for `CREDENTIAL_DOMAIN_MDOC_USER_AUTH` too.
-
-```kotlin
-class App {
-    companion object {
-        //...
-        private const val CREDENTIAL_DOMAIN_MDOC_USER_AUTH = "mdoc_user_auth"
-    }
 }
 ```
 

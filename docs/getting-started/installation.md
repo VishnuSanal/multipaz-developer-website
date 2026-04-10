@@ -147,6 +147,32 @@ kotlin {
 }
 ```
 
+```kotlin
+// core/build.gradle.kts
+plugins {
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
+}
+kotlin {
+    jvmToolchain(17)
+
+    androidLibrary {
+        androidResources.enable = true // to enable Res
+
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
+    sourceSets {
+       commonMain.dependencies {
+           implementation(compose.components.resources)
+       }
+   }
+}
+```
+
 Refer to **[this build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/build.gradle.kts#L13-L77)** for the complete example.
 
 You might also want to check out other libraries in the Multipaz ecosystem, from Multipaz [here](https://mvnrepository.com/search?q=multipaz).

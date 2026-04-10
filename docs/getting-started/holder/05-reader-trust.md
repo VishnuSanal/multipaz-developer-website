@@ -26,101 +26,112 @@ To establish reader trust, add trusted verifier app certificates to your trust m
 
 **Example: Adding Trusted Reader Certificates**
 
+In the modularized sample, reader trust setup is handled inside `AppContainerImpl` in the `core` module:
+
 ```kotlin
-class App {
+// core/src/commonMain/kotlin/.../core/AppContainer.kt
+interface AppContainer {
+    // ... rest of the implementations
+
+    val readerTrustManager: TrustManagerLocal
+}
+```
+
+```kotlin
+// core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
+class AppContainerImpl : AppContainer {
     // ...
-    lateinit var readerTrustManager: TrustManagerLocal
+    override lateinit var readerTrustManager: TrustManagerLocal
 
-    //. . .
-    suspend fun init() {
-        if (!isAppInitialized) {
-            // ...
+    override suspend fun init() {
+        if (isInitialized) return
 
-            // Initialize TrustManager
-            // Three certificates are configured to handle different verification scenarios:
-            // 1. OWF Multipaz TestApp - for testing with the Multipaz test application
-            // 2. Multipaz Identity Reader - for APK downloaded from https://apps.multipaz.org/ (production devices with    secure boot)
-            //    Certificate available from: https://verifier.multipaz.org/identityreaderbackend/readerRootCert
-            // 3. Multipaz Identity Reader (Untrusted Devices) - for app compiled from source code at https://github.com/   openwallet-foundation/multipaz-identity-reader
-            //    Certificate available from: https://verifier.multipaz.org/identityreaderbackend/  readerRootCertUntrustedDevices
-            // 4. Multipaz Web Verifier - for requesting and verifying mDocs from the web via https://verifier.multipaz.    org/
-            readerTrustManager = TrustManagerLocal(storage = storage, identifier = "reader")
+        // ... storage and document store initialization
 
-            try {
-                readerTrustManager.addX509Cert(
-                    certificate = X509Cert.fromPem(
-                        Res.readBytes("files/reader_root_cert_multipaz_testapp.pem")
-                            .decodeToString()
-                    ),
-                    metadata = TrustMetadata(
-                        displayName = "OWF Multipaz TestApp",
-                        privacyPolicyUrl = "https://apps.multipaz.org"
-                    )
+        // Initialize TrustManager
+        // Four certificates are configured to handle different verification scenarios:
+        // 1. OWF Multipaz TestApp - for testing with the Multipaz test application
+        // 2. Multipaz Identity Reader - for APK downloaded from https://apps.multipaz.org/ (production devices with secure boot)
+        //    Certificate available from: https://verifier.multipaz.org/identityreaderbackend/readerRootCert
+        // 3. Multipaz Identity Reader (Untrusted Devices) - for app compiled from source code at https://github.com/openwallet-foundation/multipaz-identity-reader
+        //    Certificate available from: https://verifier.multipaz.org/identityreaderbackend/readerRootCertUntrustedDevices
+        // 4. Multipaz Web Verifier - for requesting and verifying mDocs from the web via https://verifier.multipaz.org/
+        readerTrustManager = TrustManagerLocal(storage = storage, identifier = "reader")
+
+        try {
+            readerTrustManager.addX509Cert(
+                certificate = X509Cert.fromPem(
+                    Res.readBytes("files/reader_root_cert_multipaz_testapp.pem")
+                        .decodeToString()
+                ),
+                metadata = TrustMetadata(
+                    displayName = "OWF Multipaz TestApp",
+                    privacyPolicyUrl = "https://apps.multipaz.org"
                 )
-            } catch (e: TrustPointAlreadyExistsException) {
-                e.printStackTrace()
-            }
-
-            // Certificate for APK downloaded from https://apps.multipaz.org/
-            // This should be used for production devices with secure boot (GREEN state)
-            // Certificate source: https://verifier.multipaz.org/identityreaderbackend/readerRootCert
-            try {
-                readerTrustManager.addX509Cert(
-                    certificate = X509Cert.fromPem(
-                        Res.readBytes("files/reader_root_cert_multipaz_identity_reader.pem")
-                            .decodeToString()
-                    ),
-                    metadata = TrustMetadata(
-                        displayName = "Multipaz Identity Reader",
-                        privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
-                    )
-                )
-            } catch (e: TrustPointAlreadyExistsException) {
-                e.printStackTrace()
-            }
-
-            // Certificate for app compiled from source code at https://github.com/openwallet-foundation/   multipaz-identity-reader
-            // This should be used for development/testing devices or devices with unlocked bootloaders
-            // Certificate source: https://verifier.multipaz.org/identityreaderbackend/readerRootCertUntrustedDevices
-            try {
-                readerTrustManager.addX509Cert(
-                    certificate = X509Cert.fromPem(
-                        Res.readBytes("files/reader_root_cert_multipaz_identity_reader_untrusted.pem")
-                            .decodeToString()
-                    ),
-                    metadata = TrustMetadata(
-                        displayName = "Multipaz Identity Reader (Untrusted Devices)",
-                        privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
-                    )
-                )
-            } catch (e: TrustPointAlreadyExistsException) {
-                e.printStackTrace()
-            }
-
-            // This is for https://verifier.multipaz.org website.
-            // Certificate source: https://verifier.multipaz.org/verifier/readerRootCert
-            try {
-                readerTrustManager.addX509Cert(
-                    certificate = X509Cert.fromPem(
-                        Res.readBytes("files/reader_root_cert_multipaz_web_verifier.pem")
-                            .decodeToString()
-                    ),
-                    metadata = TrustMetadata(
-                        displayName = "Multipaz Verifier",
-                        privacyPolicyUrl = "https://verifier.multipaz.org"
-                    )
-                )
-            } catch (e: TrustPointAlreadyExistsException) {
-                e.printStackTrace()
-            }
-
-            // ...
-            isAppInitialized = true
+            )
+        } catch (e: TrustPointAlreadyExistsException) {
+            e.printStackTrace()
         }
+
+        // Certificate for APK downloaded from https://apps.multipaz.org/
+        // This should be used for production devices with secure boot (GREEN state)
+        // Certificate source: https://verifier.multipaz.org/identityreaderbackend/readerRootCert
+        try {
+            readerTrustManager.addX509Cert(
+                certificate = X509Cert.fromPem(
+                    Res.readBytes("files/reader_root_cert_multipaz_identity_reader.pem")
+                        .decodeToString()
+                ),
+                metadata = TrustMetadata(
+                    displayName = "Multipaz Identity Reader",
+                    privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
+                )
+            )
+        } catch (e: TrustPointAlreadyExistsException) {
+            e.printStackTrace()
+        }
+
+        // Certificate for app compiled from source code at https://github.com/openwallet-foundation/   multipaz-identity-reader
+        // This should be used for development/testing devices or devices with unlocked bootloaders
+        // Certificate source: https://verifier.multipaz.org/identityreaderbackend/readerRootCertUntrustedDevices
+        try {
+            readerTrustManager.addX509Cert(
+                certificate = X509Cert.fromPem(
+                    Res.readBytes("files/reader_root_cert_multipaz_identity_reader_untrusted.pem")
+                        .decodeToString()
+                ),
+                metadata = TrustMetadata(
+                    displayName = "Multipaz Identity Reader (Untrusted Devices)",
+                    privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
+                )
+            )
+        } catch (e: TrustPointAlreadyExistsException) {
+            e.printStackTrace()
+        }
+
+        // This is for https://verifier.multipaz.org website.
+        // Certificate source: https://verifier.multipaz.org/verifier/readerRootCert
+        try {
+            readerTrustManager.addX509Cert(
+                certificate = X509Cert.fromPem(
+                    Res.readBytes("files/reader_root_cert_multipaz_web_verifier.pem")
+                        .decodeToString()
+                ),
+                metadata = TrustMetadata(
+                    displayName = "Multipaz Verifier",
+                    privacyPolicyUrl = "https://verifier.multipaz.org"
+                )
+            )
+        } catch (e: TrustPointAlreadyExistsException) {
+            e.printStackTrace()
+        }
+
+        // ...
+        isInitialized = true
     }
 }
 ```
-These cerfiticate files can be downloaded from the following links. They should be placed inside `commonMain/composeResources/files`:
+These cerfiticate files can be downloaded from the following links. They should be placed inside `core/src/commonMain/composeResources/files`:
 
 * [**reader_root_cert_multipaz_testapp.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/composeResources/files/reader_root_cert_multipaz_testapp.pem)
 * [**reader_root_cert_multipaz_identity_reader.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/composeResources/files/reader_root_cert_multipaz_identity_reader.pem)

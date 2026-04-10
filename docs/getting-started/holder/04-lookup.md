@@ -13,15 +13,27 @@ You can retrieve all documents stored in the `DocumentStore` using `DocumentStor
 
 1: **Define the `listDocuments` function**
 
+The `listDocuments` function is part of the `AppContainer` interface and implemented in `AppContainerImpl` (in the `core` module):
+
 ```kotlin
-class App {
-    suspend fun listDocuments(): MutableList<Document> {
+// core/src/commonMain/kotlin/.../core/AppContainer.kt
+interface AppContainer {
+    
+    suspend fun listDocuments(): MutableList<Document>
+
+    // ... rest of the implementations
+}
+```
+
+```kotlin
+// core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
+class AppContainerImpl : AppContainer {
+    // ...
+    override suspend fun listDocuments(): MutableList<Document> {
         val documents = mutableStateListOf<Document>()
         for (document in documentStore.listDocuments()) {
-            document.let { document ->
-                if (!documents.contains(document)) {
-                    documents.add(document)
-                }
+            if (!documents.contains(document)) {
+                documents.add(document)
             }
         }
         return documents
@@ -38,7 +50,7 @@ fun HomeScreen(
     documents: List<Document>, // add document list and deletion callbacks as a parameters
     onDeleteDocument: (Document) -> Unit,
 ) {
-    val coroutineScope = rememberCoroutineScope { App.promptModel }
+    val coroutineScope = rememberCoroutineScope { AppContainer.promptModel }
 
     Column {
         // ...
@@ -68,12 +80,14 @@ fun HomeScreen(
 
 ```kotlin
 class App {
+    private val container = AppContainer.getInstance()
+
     @Composable
     fun Content() {
         val documents = remember { mutableStateListOf<Document>() }
 
         LaunchedEffect(navController.currentDestination) {
-            val currentDocuments = listDocuments()
+            val currentDocuments = container.listDocuments()
             if (currentDocuments.size != documents.size) {
                 documents.apply {
                     clear()
@@ -89,7 +103,7 @@ class App {
                 NavHost {
                     composable<Destination.HomeDestination> {
                         HomeScreen(
-                            app = this@App,
+                            container = container,
                             navController = navController,
                             documents = documents,
                             onDeleteDocument = {
@@ -115,7 +129,7 @@ You can add the following code to `HomeScreen` Composable to add a small delete 
 
 ```kotlin
 // delete button here (explained in next step)
-if (document.displayName != SAMPLE_DOCUMENT_DISPLAY_NAME) {
+if (document.displayName != CredentialDomains.SAMPLE_DOCUMENT_DISPLAY_NAME) {
     IconButton(
         content = @Composable {
             Icon(
@@ -125,7 +139,7 @@ if (document.displayName != SAMPLE_DOCUMENT_DISPLAY_NAME) {
         },
         onClick = {
             coroutineScope.launch {
-                app.documentStore.deleteDocument(document.identifier)
+                container.documentStore.deleteDocument(document.identifier)
                 onDeleteDocument(document)
             }
         }

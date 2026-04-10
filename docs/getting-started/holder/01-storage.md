@@ -40,40 +40,69 @@ It provides fine-grained control and extensibility when your app needs to suppor
 
 You must initialize `Storage`, `SecureArea`, and `SecureAreaRepository` before using the `DocumentStore` or working with identity documents.
 
-This setup should be done once, early in your app's lifecycle (e.g., inside `App()`):
+This setup should be done once, early in your app's lifecycle. In the modularized sample, this is handled inside `AppContainerImpl` in the `core` module:
 
 ```kotlin
-class App {
-    lateinit var storage: Storage
-    lateinit var storageTable: StorageTable
-    lateinit var secureArea: SecureArea
-    lateinit var secureAreaRepository: SecureAreaRepository
+// core/src/commonMain/kotlin/.../core/AppContainer.kt
+interface AppContainer {
+    val storage: Storage
+    val storageTable: StorageTable
+    val secureArea: SecureArea
+    val secureAreaRepository: SecureAreaRepository
+
+    // ... rest of the implementations
+}
+```
+
+* Now, override them in the implementation class
+
+```kotlin
+// core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
+class AppContainerImpl : AppContainer {
+
+    override lateinit var storage: Storage
+    override lateinit var storageTable: StorageTable
+    override lateinit var secureArea: SecureArea
+    override lateinit var secureAreaRepository: SecureAreaRepository
 
     // ...
 
-    suspend fun init() {
-        if (!isAppInitialized) {
-            // ...
+    override suspend fun init() {
+        if (isInitialized) return
 
-            storage = org.multipaz.util.Platform.nonBackedUpStorage
-            storageTable = storage.getTable(
-                StorageTableSpec(
-                    name = STORAGE_TABLE_NAME,
-                    supportPartitions = false,  // Simple key-value storage
-                    supportExpiration = false    // Keys don't auto-expire
-                )
+        // Storage
+        storage = org.multipaz.util.Platform.nonBackedUpStorage
+        storageTable = storage.getTable(
+            StorageTableSpec(
+                name = CredentialDomains.STORAGE_TABLE_NAME,
+                supportPartitions = false,  // Simple key-value storage
+                supportExpiration = false    // Keys don't auto-expire
             )
-            secureArea = org.multipaz.util.Platform.getSecureArea()
-            secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
+        )
+        secureArea = org.multipaz.util.Platform.getSecureArea()
+        secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
 
-            // ...
-            isAppInitialized = true
-        }
+        // ...
+        isInitialized = true
     }
+}
+```
 
-    companion object {
-        private const val STORAGE_TABLE_NAME = "TestAppKeys"
-    }
+Before proceeding, create the `CredentialDomains` object in the `core` module. This file holds all shared constants used throughout the app — we define it once here so it's available for all later sections:
+
+```kotlin
+// core/src/commonMain/kotlin/.../core/CredentialDomains.kt
+package org.multipaz.getstarted.core
+
+object CredentialDomains {
+    const val MDOC_USER_AUTH = "mdoc_user_auth"
+    const val MDOC_MAC_USER_AUTH = "mdoc_mac_user_auth"
+    const val SDJWT_USER_AUTH = "sdjwt_user_auth"
+    const val SDJWT_KEYLESS = "sdjwt_keyless"
+    const val STORAGE_TABLE_NAME = "TestAppKeys"
+
+    const val SAMPLE_DOCUMENT_DISPLAY_NAME = "Erika's Driving License"
+    const val SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME = "Utopia Driving License"
 }
 ```
 

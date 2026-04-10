@@ -5,6 +5,57 @@ sidebar_position: 6
 
 The presentation phase allows a user to present a credential (such as an mDL) to a verifier, typically using BLE, NFC, or QR code. This section covers runtime permissions, setting up presentment flows, and generating engagement QR codes.
 
+## Create the `feature/presentment` module
+
+:::tip Module creation
+To create a new module: **File → New → New Module → Kotlin Multiplatform Shared Module**. Name it as shown in the table above and configure the package name (e.g., `org.multipaz.getstarted.presentment` for `feature:presentment`).
+:::
+
+Update the `build.gradle.kts` file for the module:
+
+
+```kotlin
+// feature/presentment/build.gradle.kts
+plugins {
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
+}
+kotlin {
+    jvmToolchain(17)
+
+    androidLibrary {
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
+    sourceSets {
+       commonMain.dependencies {
+           implementation(project(":core"))
+
+            implementation(libs.multipaz)
+            implementation(libs.multipaz.compose)
+       }
+   }
+}
+```
+
+Also add the dependency in `composeApp/build.gradle.kts`:
+
+```kotlin
+// composeApp/build.gradle.kts
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            // ... other dependencies
+            implementation(project(":feature:presentment"))
+        }
+    }
+}
+```
+
 ## Runtime Permissions
 
 Multipaz provides composable functions for requesting runtime permissions in your app. Typical permissions include Bluetooth, Camera, and Notifications.
@@ -22,7 +73,7 @@ Multipaz provides composable functions for requesting runtime permissions in you
 fun HomeScreen(
     // ...
 ) {
-    val coroutineScope = rememberCoroutineScope { App.promptModel }
+    val coroutineScope = rememberCoroutineScope { AppContainer.promptModel }
     val blePermissionState = rememberBluetoothPermissionState()
     val bleEnabledState = rememberBluetoothEnabledState()
 
@@ -63,6 +114,8 @@ Refer to **[this presentation setup code](https://github.com/openwallet-foundati
 **AndroidManifest.xml: Required BLE Permissions**
 
 ```xml
+<!-- composeApp/src/androidMain/AndroidManifest.xml -->
+
 <!-- For BLE -->
 <uses-feature
    android:name="android.hardware.bluetooth_le"
@@ -112,143 +165,175 @@ Refer to **[this Info.plist code](https://github.com/openwallet-foundation/multi
 
 ### 1. Implement the UI for presentment in `HomeScreen` Composable
 
+In the modularized sample, the presentment logic is extracted into `PresentmentHomeSection` in the `feature/presentment` module. This composable handles BLE permissions, Bluetooth enablement, and the full QR presentment flow:
+
 ```kotlin
+// feature/presentment/src/commonMain/kotlin/.../presentment/PresentmentHomeSection.kt
 @Composable
-fun HomeScreen(
-    // ...
+fun PresentmentHomeSection(
+    presentmentSource: PresentmentSource,
+    promptModel: PromptModel,
+    modifier: Modifier = Modifier
 ) {
-    val coroutineScope = rememberCoroutineScope { App.promptModel }
+    val blePermissionState = rememberBluetoothPermissionState()
+    val bleEnabledState = rememberBluetoothEnabledState()
+    val coroutineScope = rememberCoroutineScope { promptModel }
 
-    Column {
-        // ...
-
-        if (!blePermissionState.isGranted) {
-            // ...
-        } else if (!bleEnabledState.isEnabled) {
-            // ...
-        } else {
-            MdocProximityQrPresentment(
-                modifier = Modifier.weight(1f),
-                source = app.presentmentSource,
-                promptModel = App.promptModel,
-                prepareSettings = { generateQrCode ->
-                    val connectionMethods = mutableListOf<MdocConnectionMethod>()
-                    val bleUuid = UUID.randomUUID()
-                    connectionMethods.add(
-                        MdocConnectionMethodBle(
-                            supportsPeripheralServerMode = true,
-                            supportsCentralClientMode = false,
-                            peripheralServerModeUuid = bleUuid,
-                            centralClientModeUuid = null,
-                        )
+    if (!blePermissionState.isGranted) {
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    blePermissionState.launchPermissionRequest()
+                }
+            }
+        ) {
+            Text("Request BLE permissions")
+        }
+    } else if (!bleEnabledState.isEnabled) {
+        Button(
+            onClick = { coroutineScope.launch { bleEnabledState.enable() } }) {
+            Text("Enable Bluetooth")
+        }
+    } else {
+        MdocProximityQrPresentment(
+            modifier = modifier,
+            source = presentmentSource,
+            promptModel = AppContainer.promptModel,
+            prepareSettings = { generateQrCode ->
+                val connectionMethods = mutableListOf<MdocConnectionMethod>()
+                val bleUuid = UUID.randomUUID()
+                connectionMethods.add(
+                    MdocConnectionMethodBle(
+                        supportsPeripheralServerMode = true,
+                        supportsCentralClientMode = false,
+                        peripheralServerModeUuid = bleUuid,
+                        centralClientModeUuid = null,
                     )
+                )
 
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Button(
-                            onClick = {
-                                generateQrCode(
-                                    MdocProximityQrSettings(
-                                        availableConnectionMethods = connectionMethods,
-                                        createTransportOptions = MdocTransportOptions(
-                                            bleUseL2CAPInEngagement = true
-                                        )
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Button(
+                        onClick = {
+                            generateQrCode(
+                                MdocProximityQrSettings(
+                                    availableConnectionMethods = connectionMethods,
+                                    createTransportOptions = MdocTransportOptions(
+                                        bleUseL2CAPInEngagement = true
                                     )
                                 )
-                            }
-                        ) @Composable {
-                            Text("Present mDoc via QR code")
+                            )
                         }
+                    ) @Composable {
+                        Text("Present mDoc via QR code")
                     }
-                },
-                showTransacting = { reset ->
-                    Text("Transacting")
-                    Button(onClick = { reset() }) {
-                        Text("Cancel")
-                    }
-                },
-                showQrCode = { uri, reset ->
-                    ShowQrCode(
-                        uri,
-                        onCancel = {
-                            reset()
-                        }
-                    )
-                },
-                showCompleted = { error, reset ->
-                    if (error is CancellationException) {
+                }
+            },
+            showTransacting = { reset ->
+                Text("Transacting")
+                Button(onClick = { reset() }) {
+                    Text("Cancel")
+                }
+            },
+            showQrCode = { uri, reset ->
+                ShowQrCode(
+                    uri,
+                    onCancel = {
                         reset()
-                    } else {
-                        if (error != null) {
-                            Text("Something went wrong: $error")
-                        } else {
-                            Text("The data was shared")
-                        }
-                        LaunchedEffect(Unit) {
-                            delay(1.5.seconds)
-                            reset()
-                        }
                     }
-                },
-            )
-        }
+                )
+            },
+            showCompleted = { error, reset ->
+                if (error is CancellationException) {
+                    reset()
+                } else {
+                    if (error != null) {
+                        Text("Something went wrong: $error")
+                    } else {
+                        Text("The data was shared")
+                    }
+                    LaunchedEffect(Unit) {
+                        delay(1.5.seconds)
+                        reset()
+                    }
+                }
+            },
+        )
     }
 }
 ```
 
-**Note:** To start engagement for presentment (e.g., via BLE), the connection method is configured inline within the `prepareSettings` callback of `MdocProximityQrPresentment`. The following example uses BLE with peripheral server mode:
+Then in `HomeScreen`, you simply use the extracted composable:
 
-**Example: BLE Engagement and QR Code**
-
-The `prepareSettings` lambda receives a `generateQrCode` callback. When the user clicks the button, it creates BLE connection methods and calls `generateQrCode` with the appropriate settings:
+```kotlin
+// composeApp/src/commonMain/kotlin/.../HomeScreen.kt
+@Composable
+fun HomeScreen(
+    container: AppContainer,
+    modifier: Modifier = Modifier
+    // ...
+) {
+    Column {
+        // ...
+        PresentmentHomeSection(
+            presentmentSource = container.presentmentSource,
+            promptModel = AppContainer.promptModel,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+```
 
 Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L126-L192)** for the full implementation
 
-### 2. Wire in the implementation in `App.kt` class
+### 2. Wire in the PresentmentSource in `AppContainerImpl`
+
+The `PresentmentSource` is initialized in `AppContainerImpl` (in the `core` module), using domain constants from `CredentialDomains`:
 
 ```kotlin
-class App {
+// core/src/commonMain/kotlin/.../core/AppContainer.kt
+interface AppContainer {
+    // ... rest of the implementations
+
+    val presentmentSource: PresentmentSource
+}
+```
+
+```kotlin
+// core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
+class AppContainerImpl : AppContainer {
     // ...
-    lateinit var presentmentSource: PresentmentSource
+    override lateinit var presentmentSource: PresentmentSource
 
-    companion object {
-        // ...
+    override suspend fun init() {
+        if (isInitialized) return
 
-        // Domains used for MdocCredential & SdJwtVcCredential
-        private const val CREDENTIAL_DOMAIN_MDOC_USER_AUTH = "mdoc_user_auth"
-        private const val CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH = "mdoc_mac_user_auth"
-        private const val CREDENTIAL_DOMAIN_SDJWT_USER_AUTH = "sdjwt_user_auth"
-        private const val CREDENTIAL_DOMAIN_SDJWT_KEYLESS = "sdjwt_keyless"
-    }
+        // ... storage, document store, trust manager initialization
 
-    suspend fun init() {
-        if (!isAppInitialized) {
-            // ...
-            presentmentSource = SimplePresentmentSource(
-                documentStore = documentStore,
-                documentTypeRepository = documentTypeRepository,
-                resolveTrustFn = { requester ->
-                    requester.certChain?.let { certChain ->
-                        val trustResult = readerTrustManager.verify(certChain.certificates)
-                        if (trustResult.isTrusted) {
-                            return@SimplePresentmentSource trustResult.trustPoints.first().metadata
-                        }
+        presentmentSource = SimplePresentmentSource(
+            documentStore = documentStore,
+            documentTypeRepository = documentTypeRepository,
+            resolveTrustFn = { requester ->
+                requester.certChain?.let { certChain ->
+                    val trustResult = readerTrustManager.verify(certChain.certificates)
+                    if (trustResult.isTrusted) {
+                        return@SimplePresentmentSource trustResult.trustPoints.first().metadata
                     }
-                    return@SimplePresentmentSource null
-                },
-                preferSignatureToKeyAgreement = true,
-                domainMdocSignature = CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-                domainMdocKeyAgreement = CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-                domainKeylessSdJwt = CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-                domainKeyBoundSdJwt = CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
-            )
+                }
+                return@SimplePresentmentSource null
+            },
+            preferSignatureToKeyAgreement = true,
+            domainMdocSignature = CredentialDomains.MDOC_USER_AUTH,
+            domainMdocKeyAgreement = CredentialDomains.MDOC_MAC_USER_AUTH,
+            domainKeylessSdJwt = CredentialDomains.SDJWT_KEYLESS,
+            domainKeyBoundSdJwt = CredentialDomains.SDJWT_USER_AUTH
+        )
 
-            // ...
-            isAppInitialized = true
-        }
+        // ...
+        isInitialized = true
     }
 }
 ```
@@ -262,7 +347,8 @@ Use the following composable to display the QR code generated for presentment. Y
 **Example: QR Code Display**
 
 ```kotlin
-// HomeScreen.kt file
+// feature/presentment/src/commonMain/kotlin/.../presentment/QrCodeDisplay.kt
+@Composable
 fun ShowQrCode(
     uri: String,
     onCancel: () -> Unit
@@ -338,13 +424,13 @@ To facilitate NFC engagement, extend `MdocNdefService` and configure the handove
 * With this setup, the NFC connection is used to negotiate the preferred transport. Since BLE is selected here, the actual credential data is transferred over BLE after initial NFC engagement.
 
 ```kotlin
-// kotlin/NdefService.kt
+// composeApp/../kotlin/NdefService.kt
 class NdefService : MdocNdefService() {
     override suspend fun getSettings(): Settings {
-        val app = App.getInstance()
-        app.init()
+        val container = AppContainer.getInstance()
+        container.init()
 
-        val source = app.presentmentSource
+        val source = container.presentmentSource
         PresentmentActivity.presentmentModel.reset(
             documentStore = source.documentStore,
             documentTypeRepository = source.documentTypeRepository,
@@ -352,7 +438,7 @@ class NdefService : MdocNdefService() {
         )
 
         return Settings(
-            source = app.presentmentSource,
+            source = container.presentmentSource,
             promptModel = PresentmentActivity.promptModel,
             presentmentModel = PresentmentActivity.presentmentModel,
             activityClass = PresentmentActivity::class.java,
@@ -384,15 +470,15 @@ Configure the AID (Application Identifier) filter in `res/xml/nfc_ndef_service.x
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:description="@string/nfc_ndef_service_description"
-    android:requireDeviceScreenOn="false"
-    android:requireDeviceUnlock="false"
-    tools:ignore="UnusedAttribute">
+        xmlns:tools="http://schemas.android.com/tools"
+        android:description="@string/nfc_ndef_service_description"
+        android:requireDeviceScreenOn="false"
+        android:requireDeviceUnlock="false"
+        tools:ignore="UnusedAttribute">
 
     <aid-group
-        android:category="other"
-        android:description="@string/nfc_ndef_service_aid_group_description">
+            android:category="other"
+            android:description="@string/nfc_ndef_service_aid_group_description">
         <!-- NFC Type 4 Tag - matches ISO 18013-5 mDL standard -->
         <aid-filter android:name="D2760000850101" />
     </aid-group>

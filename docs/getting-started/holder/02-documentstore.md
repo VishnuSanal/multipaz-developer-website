@@ -26,28 +26,43 @@ A `DocumentStore` is responsible for securely holding and managing real-world id
 
 ### Implementation
 
+In the modularized sample, this is handled inside `AppContainerImpl` in the `core` module:
+
 ```kotlin
-class App {
+// core/src/commonMain/kotlin/.../core/AppContainer.kt
+interface AppContainer {
+    
+    val documentTypeRepository: DocumentTypeRepository
+    val documentStore: DocumentStore
+
+    // ... rest of the implementations
+}
+```
+
+```kotlin
+// core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
+class AppContainerImpl : AppContainer {
     // ...
     
-    lateinit var documentTypeRepository: DocumentTypeRepository
-    lateinit var documentStore: DocumentStore
+    override lateinit var documentTypeRepository: DocumentTypeRepository
+    override lateinit var documentStore: DocumentStore
 
-    suspend fun init() {
-        if (!isAppInitialized) {
-            // ...
+    override suspend fun init() {
+        if (isInitialized) return
 
-            documentTypeRepository = DocumentTypeRepository().apply {
+        // ... storage initialization
+
+        // DocumentStore
+        documentTypeRepository = DocumentTypeRepository().apply {
             addDocumentType(DrivingLicense.getDocumentType())
-            }
-            documentStore = buildDocumentStore(
-                storage = storage,
-                secureAreaRepository = secureAreaRepository
-            ) {}
-
-            // ...
-            isAppInitialized = true
         }
+        documentStore = buildDocumentStore(
+            storage = storage,
+            secureAreaRepository = secureAreaRepository
+        ) {}
+
+        // ...
+        isInitialized = true
     }
 }
 ```
