@@ -25,6 +25,8 @@ interface AppContainer {
 }
 ```
 
+Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L31)** for the complete example.
+
 ```kotlin
 // core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
 class AppContainerImpl : AppContainer {
@@ -40,6 +42,8 @@ class AppContainerImpl : AppContainer {
     }
 }
 ```
+
+Refer to **[this listDocuments code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L243-L251)** for the complete example.
 
 2: **Implement the UI for listing documents in `HomeScreen` Composable**
 
@@ -147,6 +151,6 @@ if (document.displayName != CredentialDomains.SAMPLE_DOCUMENT_DISPLAY_NAME) {
 }
 ```
 
-Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L213-L245)** and [**from `App.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L372-L382) for the complete example.
+Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L110-L141)** and [**from `App.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L116-L126) for the complete example.
 
 By following these steps, you can efficiently list, fetch, and delete documents managed by your `DocumentStore`, ensuring your application's document management remains clean and up-to-date.
