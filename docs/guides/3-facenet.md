@@ -3,6 +3,10 @@ title: Face Detection & Verification
 sidebar_position: 4
 ---
 
+:::info Prerequisites
+This guide builds on top of the completed [Getting Started](/docs/getting-started) app. Make sure you have followed the full Getting Started guide first.
+:::
+
 This guide shows how to add on-device face detection and verification to the Multipaz Getting Started Sample using FaceNet for **both Android and iOS platforms**. You'll enable camera permissions, capture a selfie, compute a FaceNet embedding, and then match it in real time against faces detected from the camera.
 
 What you'll build:
@@ -11,6 +15,60 @@ What you'll build:
 * FaceNet embedding generation using a TFLite model
 * Live camera face detection and alignment
 * Real-time similarity scoring
+
+## Create the `feature/biometrics` module
+
+:::tip Module creation
+To create a new module: **File → New → New Module → Kotlin Multiplatform Shared Module**. Name it as shown in the table above and configure the package name (e.g., `org.multipaz.getstarted.biometrics` for `feature:biometrics`).
+:::
+
+Update the `build.gradle.kts` file for the module:
+
+```kotlin
+// feature/biometrics/build.gradle.kts
+plugins {
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
+}
+kotlin {
+    jvmToolchain(17)
+
+    androidLibrary {
+
+        androidResources.enable = true
+        
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
+    sourceSets {
+       commonMain.dependencies {
+            implementation(project(":core"))
+
+            implementation(libs.multipaz)
+            implementation(libs.multipaz.compose)
+            implementation(compose.components.resources)
+       }
+   }
+}
+```
+
+Also add the dependency in `composeApp/build.gradle.kts`:
+
+```kotlin
+// composeApp/build.gradle.kts
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            // ... other dependencies
+            implementation(project(":feature:biometrics"))
+        }
+    }
+}
+```
 
 ## **Dependencies**
 
@@ -29,7 +87,9 @@ multipaz-vision = { group = "org.multipaz", name = "multipaz-vision", version.re
 
 Refer to **[this code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/gradle/libs.versions.toml#L44)** for the complete example.
 
-`composeApp/build.gradle.kts`
+* Add the dependency to the `:core` module's `build.gradle.kts` file:
+
+`core/build.gradle.kts`
 ```kotlin
 kotlin {
     sourceSets {
@@ -177,7 +237,7 @@ iOS requires a **usage description** that explains to users why your app needs c
 
 Place the FaceNet TFLite model in common resources so both platforms can access it:
 
-**Path**: `composeApp/src/commonMain/composeResources/files/facenet_512.tflite`
+**Path**: `feature/biometrics/src/commonMain/composeResources/files/facenet_512.tflite`
 
 This sample uses:
 
@@ -188,28 +248,43 @@ You can [**download the model from this link**](https://github.com/openwallet-fo
 
 ## **Initialization**
 
-Create and store the FaceNet model in your `App` singleton during initialization. This code is platform-independent and works on both Android and iOS.
+In the modularized sample, the FaceNet model is loaded and managed by the `FaceExtractor` class in the `feature/biometrics` module. This code is platform-independent and works on both Android and iOS.
 
 ```kotlin
-class App {
-    // ...
+// feature/biometrics/src/commonMain/kotlin/.../biometrics/FaceExtractor.kt
+class FaceExtractor {
 
-    lateinit var faceMatchLiteRtModel: FaceMatchLiteRtModel
+    lateinit var faceMatchModel: FaceMatchLiteRtModel
+        private set
 
-    @OptIn(ExperimentalTime::class)
+    val isInitialized: Boolean get() = ::faceMatchModel.isInitialized
+
     suspend fun init() {
-        if (!isAppInitialized) {
-            // ... existing initializations ...
-
-            // Load FaceNet model from common resources
-            val modelData = ByteString(*Res.readBytes("files/facenet_512.tflite"))
-            faceMatchLiteRtModel =
-                FaceMatchLiteRtModel(modelData, imageSquareSize = 160, embeddingsArraySize = 512)
-
-            // ...
-            isAppInitialized = true
-        }
+        val modelData = ByteString(*Res.readBytes("files/facenet_512.tflite"))
+        faceMatchModel =
+            FaceMatchLiteRtModel(modelData, imageSquareSize = 160, embeddingsArraySize = 512)
     }
+
+    // ... face extraction methods (see Face Alignment section below)
+}
+```
+
+In `HomeScreen`, the `FaceExtractor` is initialized via `LaunchedEffect`:
+
+```kotlin
+@Composable
+fun HomeScreen(
+    // ...
+) {
+    val faceExtractor = remember { FaceExtractor() }
+    var faceExtractorReady by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        faceExtractor.init()
+        faceExtractorReady = true
+    }
+
+    // ...
 }
 ```
 
@@ -233,19 +308,21 @@ fun HomeScreen(
 
         // ... existing UI for presentation
 
-        when {
-            !cameraPermissionState.isGranted -> {
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            cameraPermissionState.launchPermissionRequest()
+        if (faceExtractorReady) {
+            when {
+                !cameraPermissionState.isGranted -> {
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                cameraPermissionState.launchPermissionRequest()
+                            }
                         }
+                    ) {
+                        Text("Grant Camera Permission for Selfie Check")
                     }
-                ) {
-                    Text("Grant Camera Permission for Selfie Check")
                 }
+                // ... facenet flow continues when the permission is granted
             }
-            // ... facenet flow continues when the permission is granted
         }
     }
 }
@@ -278,26 +355,25 @@ fun HomeScreen(
     val faceCaptured = remember { mutableStateOf<FaceEmbedding?>(null) }
 
     Column {
-        when {
-            !cameraPermissionState.isGranted -> {
-                // ...  request camera permission button
-            }
+        if (faceExtractorReady) {
+            when {
+                !cameraPermissionState.isGranted -> {
+                    // ...  request camera permission button
+                }
 
-            faceCaptured.value == null -> {
-                SelfieCheckFlow(
-                    showCamera = showCamera,
-                    onShowCameraChange = { showCamera = it },
-                    selfieCheckViewModel = selfieCheckViewModel,
-                    identityIssuer = identityIssuer,
-                    onFaceCaptured = { embedding ->
-                        faceCaptured.value = embedding
-                    },
-                    app = app
-                )
-            }
+                faceCaptured.value == null -> {
+                    SelfieCheckSection(
+                        faceExtractor = faceExtractor,
+                        identityIssuer = identityIssuer,
+                        onFaceCaptured = { embedding ->
+                            faceCaptured.value = embedding
+                        }
+                    )
+                }
 
-            else -> {
-                // Face matching flow (covered in next section)
+                else -> {
+                    // Face matching flow (covered in next section)
+                }
             }
         }
     }
@@ -306,33 +382,35 @@ fun HomeScreen(
 
 Refer to **[this selfie check code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L286-L297)** for the complete example.
 
-### Selfie Check Flow Composable
+### Selfie Check Section Composable
 
-The selfie check logic is extracted into a separate composable for better organization:
+In the modularized sample, the selfie check logic is extracted into `SelfieCheckSection` in the `feature/biometrics` module:
 
 ```kotlin
+// feature/biometrics/src/commonMain/kotlin/.../biometrics/SelfieCheckSection.kt
 @Composable
-private fun SelfieCheckFlow(
-    showCamera: Boolean,
-    onShowCameraChange: (Boolean) -> Unit,
-    selfieCheckViewModel: SelfieCheckViewModel,
+fun SelfieCheckSection(
+    faceExtractor: FaceExtractor,
     identityIssuer: String,
-    onFaceCaptured: (FaceEmbedding?) -> Unit,
-    app: App
+    onFaceCaptured: (FaceEmbedding?) -> Unit
 ) {
+    var showCamera by remember { mutableStateOf(false) }
+    val selfieCheckViewModel: SelfieCheckViewModel =
+        remember { SelfieCheckViewModel(identityIssuer) }
+
     if (!showCamera) {
-        Button(onClick = { onShowCameraChange(true) }) {
+        Button(onClick = { showCamera = true }) {
             Text("Selfie Check")
         }
     } else {
         SelfieCheck(
             modifier = Modifier.fillMaxWidth(),
             onVerificationComplete = {
-                onShowCameraChange(false)
+                showCamera = false
                 if (selfieCheckViewModel.capturedFaceImage != null) {
                     val embedding = getFaceEmbeddings(
                         image = decodeImage(selfieCheckViewModel.capturedFaceImage!!.toByteArray()),
-                        model = app.faceMatchLiteRtModel
+                        model = faceExtractor.faceMatchModel
                     )
                     onFaceCaptured(embedding)
                 }
@@ -344,7 +422,7 @@ private fun SelfieCheckFlow(
 
         Button(
             onClick = {
-                onShowCameraChange(false)
+                showCamera = false
                 selfieCheckViewModel.resetForNewCheck()
             }
         ) {
@@ -381,24 +459,22 @@ fun HomeScreen(
     var similarity by remember { mutableStateOf(0f) }
 
     Column {
-        when {
-            !cameraPermissionState.isGranted -> {
-                // ... request camera permission button
-            }
+        if (faceExtractorReady) {
+            when {
+                !cameraPermissionState.isGranted -> {
+                    // ... request camera permission button
+                }
 
-            faceCaptured.value == null -> {
-                // ... show selfie check
-            }
+                faceCaptured.value == null -> {
+                    // ... show selfie check
+                }
 
-            else -> {
-                FaceMatchingFlow(
-                    showFaceMatching = showFaceMatching,
-                    onShowFaceMatchingChange = { showFaceMatching = it },
-                    similarity = similarity,
-                    onSimilarityChange = { similarity = it },
-                    faceCaptured = faceCaptured,
-                    app = app
-                )
+                else -> {
+                    FaceMatchingSection(
+                        faceExtractor = faceExtractor,
+                        faceCaptured = faceCaptured
+                    )
+                }
             }
         }
     }
@@ -407,22 +483,22 @@ fun HomeScreen(
 
 Refer to **[live face matching flow](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L299-L308)** for the complete example.
 
-### Face Matching Flow Composable
+### Face Matching Section Composable
 
-The selfie check logic is extracted into a separate composable for better organization:
+In the modularized sample, the face matching logic is extracted into `FaceMatchingSection` in the `feature/biometrics` module:
 
 ```kotlin
+// feature/biometrics/src/commonMain/kotlin/.../biometrics/FaceMatchingSection.kt
 @Composable
-private fun FaceMatchingFlow(
-    showFaceMatching:  Boolean,
-    onShowFaceMatchingChange: (Boolean) -> Unit,
-    similarity: Float,
-    onSimilarityChange: (Float) -> Unit,
-    faceCaptured: MutableState<FaceEmbedding?>,
-    app: App
+fun FaceMatchingSection(
+    faceExtractor: FaceExtractor,
+    faceCaptured: MutableState<FaceEmbedding?>
 ) {
+    var showFaceMatching by remember { mutableStateOf(false) }
+    var similarity by remember { mutableStateOf(0f) }
+
     if (!showFaceMatching) {
-        Button(onClick = { onShowFaceMatchingChange(true) }) {
+        Button(onClick = { showFaceMatching = true }) {
             Text("Face Matching")
         }
     } else {
@@ -435,26 +511,26 @@ private fun FaceMatchingFlow(
             cameraSelection = CameraSelection.DEFAULT_FRONT_CAMERA,
             captureResolution = CameraCaptureResolution.MEDIUM,
             showCameraPreview = true,
-        ) { incomingVideoFrame:  CameraFrame ->
+        ) { incomingVideoFrame: CameraFrame ->
             val faces = detectFaces(incomingVideoFrame)
 
             when {
                 faces.isNullOrEmpty() -> {
-                    onSimilarityChange(0f)
+                    similarity = 0f
                 }
 
                 faceCaptured.value != null -> {
-                    val faceImage = app.extractFaceBitmap(
+                    val faceImage = faceExtractor.extractFaceBitmap(
                         incomingVideoFrame,
-                        faces[0], // assuming only one face exists for simplicity
-                        app. faceMatchLiteRtModel.imageSquareSize
+                        faces[0],
+                        faceExtractor.faceMatchModel.imageSquareSize
                     )
 
-                    val faceEmbedding = getFaceEmbeddings(faceImage, app.faceMatchLiteRtModel)
+                    val faceEmbedding = getFaceEmbeddings(faceImage, faceExtractor.faceMatchModel)
 
                     if (faceEmbedding != null) {
                         val newSimilarity = faceCaptured.value!!.calculateSimilarity(faceEmbedding)
-                        onSimilarityChange(newSimilarity)
+                        similarity = newSimilarity
                     }
                 }
             }
@@ -462,7 +538,7 @@ private fun FaceMatchingFlow(
 
         Button(
             onClick = {
-                onShowFaceMatchingChange(false)
+                showFaceMatching = false
                 faceCaptured.value = null
             }
         ) {
@@ -476,7 +552,7 @@ private fun FaceMatchingFlow(
 * The `Camera` composable provided by the Multipaz SDK handles camera initialization and preview rendering for both platforms
 * The `onFrameCaptured` callback is invoked for each camera frame with a `CameraFrame` object
 * Use `detectFaces` function to detect faces in the `CameraFrame` - internally uses Google ML Kit on both platforms
-* `extractFaceBitmap` aligns and crops the detected face
+* `faceExtractor.extractFaceBitmap` aligns and crops the detected face
 * `getFaceEmbeddings` converts the face to a `FaceEmbedding`
 * `FaceEmbedding#calculateSimilarity` calculates cosine similarity with the enrolled face
 
@@ -489,13 +565,14 @@ Refer to **[this face matching flow composable code](https://github.com/openwall
 
 ## **Face Alignment and Cropping**
 
-For best matching with FaceNet, align the face so the eyes are level and crop a square around the face. Use landmarks and simple geometry to rotate and crop the face region, then scale to the model input size. You can copy-paste the `extractFaceBitmap` function below.
+For best matching with FaceNet, align the face so the eyes are level and crop a square around the face. Use landmarks and simple geometry to rotate and crop the face region, then scale to the model input size. In the modularized sample, this is part of the `FaceExtractor` class in the `feature/biometrics` module:
 
 ```kotlin
-class App {
-    /**
-     * Cut out the face square, rotate it to level eyes line, scale to the smaller size for face matching tasks.
-     */
+// feature/biometrics/src/commonMain/kotlin/.../biometrics/FaceExtractor.kt
+class FaceExtractor {
+    // ... init() and faceMatchModel (shown above)
+
+    /** Cut out the face square, rotate it to level eyes line, scale to the smaller size for face matching tasks. */
     fun extractFaceBitmap(
         frameData: CameraFrame,
         face: DetectedFace,
