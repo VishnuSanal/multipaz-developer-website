@@ -5,6 +5,10 @@ sidebar_position: 2
 
 # Native Digital Credentials Verification
 
+:::info Prerequisites
+This guide builds on top of the completed [Getting Started](/docs/getting-started) app. Make sure you have followed the full Getting Started guide first.
+:::
+
 The native W3C DC implementation allows your Android app to interact with verifiers through direct API calls, supporting secure and privacy-preserving credential presentment flows. To implement this using the Multipaz SDK, these steps are required:
 
 * Implementing the core W3C DC request flow (shared code)
@@ -21,28 +25,57 @@ Native W3C DC implementation is currently **only supported on Android** since it
 
 # **Implementation Steps**
 
-## **1. Dependencies**
+## **1. Create the `feature/verification` module**
 
-The native credentials verification feature requires the Multipaz DC API library. Please make sure to add it, if not already.
+:::tip Module creation
+To create a new module: **File → New → New Module → Kotlin Multiplatform Shared Module**. Name it as shown in the table above and configure the package name (e.g., `org.multipaz.getstarted.verification` for `feature:verification`).
+:::
 
-`gradle/libs.versions.toml`
-```toml
-[versions]
-multipaz = "0.97.0" # latest version of Multipaz Extras
+Update the `build.gradle.kts` file for the module:
 
-[libraries]
-multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
+```kotlin
+// feature/verification/build.gradle.kts
+plugins {
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
+}
+kotlin {
+    jvmToolchain(17)
+
+    androidLibrary {
+
+        androidResources.enable = true
+        
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
+    sourceSets {
+       commonMain.dependencies {
+            implementation(project(":core"))
+
+            implementation(libs.multipaz)
+            implementation(libs.multipaz.compose)
+            implementation(libs.multipaz.doctypes)
+            implementation(libs.multipaz.dcapi)
+            implementation(compose.components.resources)
+       }
+   }
+}
 ```
 
-Refer to **[this code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/gradle/libs.versions.toml#L45)** for the complete example.
+Also add the dependency in `composeApp/build.gradle.kts`:
 
-`composeApp/build.gradle.kts`
 ```kotlin
+// composeApp/build.gradle.kts
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // ...
-            implementation(libs.multipaz.vision)
+            // ... other dependencies
+            implementation(project(":feature:verification"))
         }
     }
 }
@@ -50,14 +83,45 @@ kotlin {
 
 Refer to **[this code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/build.gradle.kts#L59)** for the complete example.
 
-## **2. Implement Core W3C DC Request Flow**
+## **2. Dependencies**
+
+The native credentials verification feature requires the Multipaz DC API library. Please make sure to add these to `libs.versions.toml` if not already present:
+
+`gradle/libs.versions.toml`
+```toml
+[versions]
+multipaz = "0.97.0" # latest version of Multipaz
+
+[libraries]
+multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
+```
+
+Refer to **[this code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/gradle/libs.versions.toml#L45)** for the complete example.
+
+* Add the dependency to the `:core` module's `build.gradle.kts` file:
+
+```kotlin
+// core/build.gradle.kts
+kotlin {
+   sourceSets {
+       commonMain.dependencies {
+           // ... other dependencies 
+          implementation(libs.multipaz.dcapi)
+       }
+   }
+}
+```
+
+Refer to **[this code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/gradle/libs.versions.toml#L45)** for the complete example.
+
+## **3. Implement Core W3C DC Request Flow**
 
 The W3C Digital Credentials flow involves several cryptographic operations and network requests. Here's the concrete implementation:
 
-All the helper functions for this feature is implemented in a seperate file called `W3CDCCredentialsRequestButton.kt` inside a `w3cdc` package in the get started sample.
+All the helper functions for this feature are implemented in a separate file called `W3CDCCredentialsRequestButton.kt` inside the `feature/verification` module (package `org.multipaz.getstarted.verification`) in the get started sample.
 
 ```kotlin
-// w3cdc/W3CDCCredentialsRequestButton.kt
+// verification/W3CDCCredentialsRequestButton.kt
 @OptIn(ExperimentalTime::class)
 private suspend fun doDcRequestFlow(
     appReaderKey: AsymmetricKey.X509Compatible,
@@ -185,11 +249,11 @@ private suspend fun doDcRequestFlow(
 
 See the **[DC Request Flow Function Code](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/w3cdc/W3CDCCredentialsRequestButton.kt#L401-L522)** for the complete implementation.
 
-## **3. Define Constants and Model Classes**
+## **4. Define Constants and Model Classes**
 
 ### Constants File
 
-All the required constants for the native verification feature are defined in `w3cdc/W3CDCConstants.kt`.
+All the required constants for the native verification feature are defined in `verification/W3CDCConstants.kt`.
 
 ```kotlin
 class W3CDCConstants {
@@ -206,10 +270,10 @@ class W3CDCConstants {
 
 ### Model Classes
 
-The data model classes required for the native verification feature are defined in `w3cdc/W3CDCModels.kt`.
+The data model classes required for the native verification feature are defined in `verification/W3CDCModels.kt`.
 
 ```kotlin
-// w3cdc/W3CDCModels.kt
+// verification/W3CDCModels.kt
 
 /* Models used for W3C DC Native Flow */
 
@@ -228,6 +292,16 @@ data class RequestEntry(
     val displayName: String,
     val documentType: DocumentType,
     val sampleRequest: DocumentCannedRequest
+)
+
+@Serializable
+data class ShowResponseDestination(
+    val vpResponse: String?,
+    val deviceResponse: String?,
+    val sessionTranscript: String?,
+    val nonce: String?,
+    val eReaderKey: String?,
+    val metadata: String?
 )
 
 /* Helper functions used for W3C DC Native Flow */
@@ -264,7 +338,7 @@ fun buildShowResponseDestination(
     nonce: ByteString?,
     eReaderKey: EcPrivateKey?,
     metadata: ShowResponseMetadata
-): Destination.ShowResponseDestination {
+): ShowResponseDestination {
 
     fun JsonObject?.jsonBase64() =
         this?.let { Json.encodeToString(it).encodeToByteArray().toBase64Url() }
@@ -284,7 +358,7 @@ fun buildShowResponseDestination(
             ?.toDataItem()
             ?.let { Cbor.encode(it).toBase64Url() }
 
-    return Destination.ShowResponseDestination(
+    return ShowResponseDestination(
         vpResponse = vpToken.jsonBase64(),
         deviceResponse = deviceResponse.cborBase64(),
         sessionTranscript = sessionTranscript.cborBase64Required(),
@@ -297,7 +371,7 @@ fun buildShowResponseDestination(
 - **`ShowResponseMetadata`:** Represents performance and transport metadata associated with a W3C Digital Credentials (DC) Native Flow.
 - **`RequestEntry`:** Represents a predefined request option that can be presented to the user or used in demos/tests.
 - **`ShowResponseMetadata.toDataItem()`:** Converts a `ShowResponseMetadata` instance into a CBOR map (`DataItem`).
-- **`buildShowResponseDestination(...)`:** Constructs a fully-formed `Destination.ShowResponseDestination` instance, encoding all inputs into the formats required by the W3C DC Native Flow.
+- **`buildShowResponseDestination(...)`:** Constructs a fully-formed `ShowResponseDestination` instance, encoding all inputs into the formats required by the W3C DC Native Flow.
 
 You can refer to the **[`w3cdc/W3CDCModels.kt` File](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/w3cdc/W3CDCModels.kt)** for the complete implementation.
 
@@ -306,7 +380,7 @@ You can refer to the **[`w3cdc/W3CDCModels.kt` File](https://github.com/openwall
 A sealed class representing a renderable value within a document - either textual content or image content.
 
 ```kotlin
-// w3cdc/DocumentValue.kt
+// verification/DocumentValue.kt
 sealed class DocumentValue {
      data class ValueText(
         val title: String,
@@ -322,14 +396,14 @@ sealed class DocumentValue {
 You can refer to the **[`w3cdc/DocumentValue.kt` File](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/w3cdc/DocumentValue.kt)** for the complete implementation.
 
 
-## **4. Implement `getAppToAppOrigin()` Function**
+## **5. Implement `getAppToAppOrigin()` Function**
 
 The `getAppToAppOrigin()` function provides a unique identifier for the app as required by the W3C Digital Credentials specification. This is used in the `clientId` field of credential requests.
 
-On Android, the app origin combines the package name with the SHA-256 fingerprint of the app's signing certificate. This prevents package name spoofing multiple apps can't share the same package + cert combination. This function can be implemented in the `Platform.kt` file (we are also adding another helper function here for convenience).
+On Android, the app origin combines the package name with the SHA-256 fingerprint of the app's signing certificate. This prevents package name spoofing multiple apps can't share the same package + cert combination. This function can be implemented in the `Platform.kt` file in the `core` module (we are also adding another helper function here for convenience).
 
 ```kotlin
-// commonMain/Platform.kt
+// core/src/commonMain/kotlin/.../core/Platform.kt
 expect suspend fun getAppToAppOrigin(): String
 expect fun isAndroid(): Boolean
 expect val httpClientEngineFactory: HttpClientEngineFactory<*>
@@ -340,7 +414,7 @@ See the [**`commonMain/Platform.kt`**](https://github.com/openwallet-foundation/
 #### Android Implementation
 
 ```kotlin
-// androidMain/Platform.kt
+// core/src/androidMain/kotlin/.../core/Platform.kt
 actual suspend fun getAppToAppOrigin(): String {
     val packageInfo = applicationContext.packageManager
         .getPackageInfo(applicationContext.packageName, PackageManager.GET_SIGNATURES)
@@ -364,11 +438,8 @@ See the [**`androidMain/Platform.kt`**](https://github.com/openwallet-foundation
 #### iOS Implementation
 
 ```kotlin
-// iosMain/Platform.kt
+// core/src/iosMain/kotlin/.../core/Platform.kt
 actual suspend fun getAppToAppOrigin(): String {
-    // On iOS, use the bundle identifier as the app origin
-    // This uniquely identifies the app and is the iOS equivalent
-    // of using the signing certificate on Android
     return NSBundle.mainBundle.bundleIdentifier ?: "unknown.bundle.id"
 }
 
@@ -392,7 +463,7 @@ See the [**`iosMain/Platform.kt`**](https://github.com/openwallet-foundation/mul
 - Uses the Multipaz `getAppOrigin()` utility to format it properly
 - Results in a unique identifier based on both package name and certificate
 
-## **4. Implement the Request Button Composable**
+## **6. Implement the Request Button Composable**
 
 The `W3CDCCredentialsRequestButton` Composable function handles the end-to-end flow for requesting credentials using the W3C Digital Credentials API. It handles
 
@@ -401,7 +472,7 @@ The `W3CDCCredentialsRequestButton` Composable function handles the end-to-end f
 - Processing and logging/displaying the response
 
 ```kotlin
-// w3cdc/W3CDCCredentialsRequestButton.kt
+// verification/W3CDCCredentialsRequestButton.kt
 const val TAG = "W3CDCCredentialsRequestButton"
 
 @Composable
@@ -493,7 +564,7 @@ fun W3CDCCredentialsRequestButton(
 
 You can refer to this [**`W3CDCCredentialsRequestButton` Composable Code**](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/w3cdc/W3CDCCredentialsRequestButton.kt#L87-L172) for the complete implementation.
 
-## **5. Set Up Reader Certificates**
+## **7. Set Up Reader Certificates**
 
 We need to initialize the reader certificates that authenticate the app as a verifier.
 
@@ -571,7 +642,7 @@ private suspend fun loadBundledReaderRootKey(): EcPrivateKey {
 }
 ```
 
-**Note:** Cerfiticate files mentioned above can be downloaded from the following links. They should be placed inside `commonMain/composeResources/files`:
+**Note:** Certificate files mentioned above can be downloaded from the following links. They should be placed inside `feature/verification/src/commonMain/composeResources/files`:
 
 * [**reader_root_key_public.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/composeResources/files/reader_root_key_public.pem)
 * [**reader_root_key_private.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/composeResources/files/reader_root_key_private.pem)
@@ -657,7 +728,7 @@ You can refer to this [**Reader Initialization Code**](https://github.com/openwa
 * **Persistent Storage**: Keys are stored using CBOR encoding so they persist across app sessions
 * **Bundled Keys**: This sample uses pre-generated keys from resources for demonstration
 
-## **7. Integrate Into Your UI**
+## **8. Integrate Into Your UI**
 
 Now that you have completed the core implementation, we can integrate it into the app's UI.
 
@@ -675,9 +746,9 @@ fun HomeScreen(
         // W3C Digital Credentials API is currently only available on Android
         if (isAndroid() && documents.isNotEmpty()) {
             W3CDCCredentialsRequestButton(
-                promptModel = App.promptModel,
-                storageTable = app.storageTable,
-                readerTrustManager = app.readerTrustManager,
+                promptModel = AppContainer.promptModel,
+                storageTable = container.storageTable,
+                readerTrustManager = container.readerTrustManager,
                 showResponse = { vpToken: JsonObject?,
                                  deviceResponse: DataItem?,
                                  sessionTranscript: DataItem,
@@ -724,13 +795,13 @@ class App {
                         /* ProvisioningScreen() invocation*/
                     }
 
-                    composable<Destination.ShowResponseDestination> { backStackEntry ->
+                    composable<ShowResponseDestination> { backStackEntry ->
                         val response =
-                            backStackEntry.toRoute<Destination.ShowResponseDestination>()
+                            backStackEntry.toRoute<ShowResponseDestination>()
 
                         ShowResponseScreen(
                             response = response,
-                            documentTypeRepository = documentTypeRepository,
+                            documentTypeRepository = container.documentTypeRepository,
                             goBack = {
                                 navController.popBackStack()
                             }
@@ -750,10 +821,10 @@ Refer to the [**updates to the Navigation code**](https://github.com/openwallet-
 After receiving the credential response, we need to display the data to the user. This is implemented using the `` Composable that verifies the cryptographic integrity of the response, extracts the credential data, and displays it.
 
 ```kotlin
-// w3cdc/ShowResponseScreen.kt
+// verification/ShowResponseScreen.kt
 @Composable
 fun ShowResponseScreen(
-    response: Destination.ShowResponseDestination,
+    response: ShowResponseDestination,
     documentTypeRepository: DocumentTypeRepository?,
     goBack: () -> Unit
 ) {
