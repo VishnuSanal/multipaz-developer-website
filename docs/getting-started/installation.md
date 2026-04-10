@@ -83,7 +83,6 @@ androidx-fragment = "1.8.6"
 multipaz = { group = "org.multipaz", name = "multipaz", version.ref = "multipaz" }
 multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.ref = "multipaz" }
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
-multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
 
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "androidx-fragment" }
@@ -116,7 +115,6 @@ kotlin {
            implementation(libs.multipaz)
            implementation(libs.multipaz.compose)
            implementation(libs.multipaz.doctypes)
-           implementation(libs.multipaz.dcapi)
            
            implementation(libs.coil.compose)
        }
