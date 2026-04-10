@@ -11,9 +11,59 @@ What you’ll implement:
 * Minimal “wallet back-end” for demo purposes to complete attestation and OAuth steps.
 * A basic UI that guides users through authorization and receives issued credentials.
 
+## Create the `feature/provisioning` module
+
+:::tip Module creation
+To create a new module: **File → New → New Module → Kotlin Multiplatform Shared Module**. Name it as shown in the table above and configure the package name (e.g., `org.multipaz.getstarted.provisioning` for `feature:provisioning`).
+:::
+
+Update the `build.gradle.kts` file for the module:
+
+```kotlin
+// feature/provisioning/build.gradle.kts
+plugins {
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
+}
+kotlin {
+    jvmToolchain(17)
+
+    androidLibrary {
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
+    sourceSets {
+       commonMain.dependencies {
+            implementation(project(":core"))
+
+            implementation(libs.multipaz)
+            implementation(libs.multipaz.compose)
+       }
+   }
+}
+```
+
+Also add the dependency in `composeApp/build.gradle.kts`:
+
+```kotlin
+// composeApp/build.gradle.kts
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            // ... other dependencies
+            implementation(project(":feature:provisioning"))
+        }
+    }
+}
+```
+
 ## **Dependencies**
 
-Add Ktor HTTP client for network calls (core + platform engines).
+Add Ktor HTTP client for network calls (core + platform engines). Please note that we are adding these dependencies to the `:core` module.
 
 Update `libs.versions.toml`:
 
@@ -30,23 +80,13 @@ ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "k
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-
-[plugins]
-kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ```
 
 Refer to [**this libs.versions.toml code**](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/gradle/libs.versions.toml#L50-L54) for the complete example.
 
-Update `app/build.gradle.kts`:
+Update `core/build.gradle.kts`:
 
 ```kotlin
-
-plugins {
-    // ...
-    alias(libs.plugins.kotlinSerialization)
-}
-
 kotlin {
     sourceSets {
 
@@ -297,39 +337,40 @@ Refer to [**this MainActivity.kt code**](https://github.com/openwallet-foundatio
 
 1. Add provisioning fields, initialize ProvisioningModel & ProvisioningSupport.
 
+In the modularized sample, `ProvisioningSupport` and `ProvisioningScreen` live in the `feature/provisioning` module. The `App` class delegates to `AppContainer` for shared infrastructure:
+
 ```kotlin
-// ...
+// composeApp/src/commonMain/kotlin/.../App.kt
 class App {
-    // ...
+    private val container = AppContainer.getInstance()
+    private val credentialOffers = Channel<String>()
+
     lateinit var provisioningModel: ProvisioningModel
     lateinit var provisioningSupport: ProvisioningSupport
 
-    // Channel for incoming credential offer URIs
-    private val credentialOffers = Channel<String>()
-
     suspend fun init() {
-        if (!isAppInitialized) {
-            // ... existing initializations
+        if (isInitialized) return
 
-            provisioningModel = ProvisioningModel(
-                documentProvisioningHandler = DocumentProvisioningHandler(
-                    documentStore = documentStore,
-                    secureArea = secureArea
-                ),
-                httpClient = HttpClient(httpClientEngineFactory) {
-                    followRedirects = false
-                },
-                promptModel = promptModel,
-                authorizationSecureArea = secureArea
-            )
-            provisioningSupport = ProvisioningSupport(
-                storage = storage,
-                secureArea = secureArea,
-            )
-            provisioningSupport.init()
+        container.init()
 
-            isAppInitialized = true;
-        }
+        provisioningModel = ProvisioningModel(
+            documentProvisioningHandler = DocumentProvisioningHandler(
+                documentStore = container.documentStore,
+                secureArea = container.secureArea
+            ),
+            httpClient = HttpClient(httpClientEngineFactory) {
+                followRedirects = false
+            },
+            promptModel = AppContainer.promptModel,
+            authorizationSecureArea = container.secureArea
+        )
+        provisioningSupport = ProvisioningSupport(
+            storage = container.storage,
+            secureArea = container.secureArea,
+        )
+        provisioningSupport.init()
+
+        isInitialized = true
     }
 }
 ```
@@ -465,6 +506,37 @@ The implementation for the whole provisioning flow is present in a seperate comp
 
 * **Note:** You would want to copy-paste [**the complete `ProvisioningScreen` Composable implementation**](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/ProvisioningScreen.kt) into your project.
 
+5. Implement `httpClientEngineFactory` in `Platform.kt`
+
+```kotlin
+// core/src/commonMain/kotlin/.../core/Platform.kt
+expect val httpClientEngineFactory: HttpClientEngineFactory<*>
+```
+
+See the [**`commonMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/Platform.kt) file for the complete implementation.
+
+#### Android Implementation
+
+```kotlin
+// core/src/androidMain/kotlin/.../core/Platform.kt
+actual val httpClientEngineFactory: HttpClientEngineFactory<*> by lazy {
+    Android
+}
+```
+
+See the [**`androidMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/androidMain/kotlin/org/multipaz/getstarted/Platform.kt) file for the complete implementation.
+
+#### iOS Implementation
+
+```kotlin
+// core/src/iosMain/kotlin/.../core/Platform.kt
+actual val httpClientEngineFactory: HttpClientEngineFactory<*> by lazy {
+    Darwin
+}
+```
+
+See the [**`iosMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/0ee75e993114b37a586abcc68a72f0b21e700ee9/MultipazGettingStartedSample/composeApp/src/iosMain/kotlin/org/multipaz/getstarted/Platform.kt) file for the complete implementation.
+
 6. Add a button from `HomeScreen` to the Multipaz Issuer Website
 
 ```kotlin
@@ -496,8 +568,6 @@ fun HomeScreen(
                 textAlign = TextAlign.Center
             )
         }
-
-        // existing UI for facenet
     }
 }
 ```
