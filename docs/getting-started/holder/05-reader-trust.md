@@ -33,17 +33,17 @@ In the modularized sample, reader trust setup is handled inside `AppContainerImp
 interface AppContainer {
     // ... rest of the implementations
 
-    val readerTrustManager: TrustManagerLocal
+    val readerTrustManager: TrustManager
 }
 ```
 
-Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L26)** for the complete example.
+Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L26)** for the complete example.
 
 ```kotlin
 // core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
 class AppContainerImpl : AppContainer {
     // ...
-    override lateinit var readerTrustManager: TrustManagerLocal
+    override lateinit var readerTrustManager: TrustManager
 
     override suspend fun init() {
         if (isInitialized) return
@@ -58,7 +58,7 @@ class AppContainerImpl : AppContainer {
         // 3. Multipaz Identity Reader (Untrusted Devices) - for app compiled from source code at https://github.com/openwallet-foundation/multipaz-identity-reader
         //    Certificate available from: https://verifier.multipaz.org/identityreaderbackend/readerRootCertUntrustedDevices
         // 4. Multipaz Web Verifier - for requesting and verifying mDocs from the web via https://verifier.multipaz.org/
-        readerTrustManager = TrustManagerLocal(storage = storage, identifier = "reader")
+        readerTrustManager = TrustManager(storage = storage, identifier = "reader")
 
         try {
             readerTrustManager.addX509Cert(
@@ -71,7 +71,7 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://apps.multipaz.org"
                 )
             )
-        } catch (e: TrustPointAlreadyExistsException) {
+        } catch (e: TrustEntryAlreadyExistsException) {
             e.printStackTrace()
         }
 
@@ -89,7 +89,7 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
                 )
             )
-        } catch (e: TrustPointAlreadyExistsException) {
+        } catch (e: TrustEntryAlreadyExistsException) {
             e.printStackTrace()
         }
 
@@ -107,7 +107,7 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
                 )
             )
-        } catch (e: TrustPointAlreadyExistsException) {
+        } catch (e: TrustEntryAlreadyExistsException) {
             e.printStackTrace()
         }
 
@@ -124,7 +124,7 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org"
                 )
             )
-        } catch (e: TrustPointAlreadyExistsException) {
+        } catch (e: TrustEntryAlreadyExistsException) {
             e.printStackTrace()
         }
 
@@ -135,10 +135,10 @@ class AppContainerImpl : AppContainer {
 ```
 These certificate files can be downloaded from the following links. They should be placed inside `core/src/commonMain/composeResources/files`:
 
-* [**reader_root_cert_multipaz_testapp.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/reader_root_cert_multipaz_testapp.pem)
-* [**reader_root_cert_multipaz_identity_reader.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/reader_root_cert_multipaz_identity_reader.pem)
-* [**reader_root_cert_multipaz_identity_reader_untrusted.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/reader_root_cert_multipaz_identity_reader_untrusted.pem)
-* [**reader_root_cert_multipaz_web_verifier.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/reader_root_cert_multipaz_web_verifier.pem)
+* [**reader_root_cert_multipaz_testapp.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/reader_root_cert_multipaz_testapp.pem)
+* [**reader_root_cert_multipaz_identity_reader.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/reader_root_cert_multipaz_identity_reader.pem)
+* [**reader_root_cert_multipaz_identity_reader_untrusted.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/reader_root_cert_multipaz_identity_reader_untrusted.pem)
+* [**reader_root_cert_multipaz_web_verifier.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/reader_root_cert_multipaz_web_verifier.pem)
 
 With this setup, your holder app will trust the following Multipaz applications as valid readers:
 - **OWF Multipaz TestApp** (https://apps.multipaz.org) - For testing and development
@@ -148,4 +148,4 @@ With this setup, your holder app will trust the following Multipaz applications 
 
 Add additional trusted readers as needed by importing their certificates. By configuring TrustManager with trusted reader certificates, you ensure that only authorized verifier apps can access user credentials during presentment.
 
-Refer to **[this reader trust code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L133-L194)** for the complete example.
+Refer to **[this reader trust code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L128-L189)** for the complete example.

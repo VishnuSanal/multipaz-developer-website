@@ -25,7 +25,7 @@ interface AppContainer {
 }
 ```
 
-Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L31)** for the complete example.
+Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L31)** for the complete example.
 
 ```kotlin
 // core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
@@ -43,7 +43,7 @@ class AppContainerImpl : AppContainer {
 }
 ```
 
-Refer to **[this listDocuments code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L243-L251)** for the complete example.
+Refer to **[this listDocuments code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L239-L247)** for the complete example.
 
 2: **Implement the UI for listing documents in `HomeScreen` Composable**
 
@@ -90,12 +90,17 @@ class App {
     fun Content() {
         val documents = remember { mutableStateListOf<Document>() }
 
-        LaunchedEffect(navController.currentDestination) {
-            val currentDocuments = container.listDocuments()
-            if (currentDocuments.size != documents.size) {
-                documents.apply {
-                    clear()
-                    addAll(currentDocuments)
+        LaunchedEffect(
+            navController.currentDestination,
+            provisioningState
+        ) {
+            val shouldRefresh = navController.currentDestination != null
+
+            if (shouldRefresh) {
+                val currentDocuments = container.listDocuments()
+                if (currentDocuments.size != documents.size) {
+                    documents.clear()
+                    documents.addAll(currentDocuments)
                 }
             }
         }
@@ -103,17 +108,19 @@ class App {
         // ...
 
         MaterialTheme {
-            Column {
-                NavHost {
-                    composable<Destination.HomeDestination> {
-                        HomeScreen(
-                            container = container,
-                            navController = navController,
-                            documents = documents,
-                            onDeleteDocument = {
-                                documents.remove(it)
-                            },
-                        )
+            Surface {
+                Column {
+                    NavHost {
+                        composable<Destination.HomeDestination> {
+                            HomeScreen(
+                                container = container,
+                                navController = navController,
+                                documents = documents,
+                                onDeleteDocument = {
+                                    documents.remove(it)
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -151,6 +158,6 @@ if (document.displayName != CredentialDomains.SAMPLE_DOCUMENT_DISPLAY_NAME) {
 }
 ```
 
-Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L110-L141)** and [**from `App.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L116-L126) for the complete example.
+Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L110-L141)** and [**from `App.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L117-L134) for the complete example.
 
 By following these steps, you can efficiently list, fetch, and delete documents managed by your `DocumentStore`, ensuring your application's document management remains clean and up-to-date.

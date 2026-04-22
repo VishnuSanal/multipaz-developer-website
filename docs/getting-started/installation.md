@@ -43,7 +43,7 @@ kotlin {
 }
 ```
 
-Refer to **[this composeApp build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/build.gradle.kts#L44-L48)** for the complete example.
+Refer to **[this composeApp build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/build.gradle.kts#L44-L48)** for the complete example.
 
 ## Installation of Dependencies​
 
@@ -67,16 +67,16 @@ dependencyResolutionManagement {
 }
 ```
 
-Refer to **[this settings.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/settings.gradle.kts#L4-L33)** for the complete example.
+Refer to **[this settings.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/settings.gradle.kts#L4-L33)** for the complete example.
 
 * Add the following dependencies to `libs.versions.toml`
 
 ```yml
 [versions]
 # update this line
-android-minSdk = "26" # Multipaz requires minSdk >= 26 due to usage of Android 8.0+ APIs
+android-minSdk = "29" # Multipaz requires minSdk >= 29
 
-multipaz = "0.97.0" # latest version of Multipaz to use
+multipaz = "0.98.0" # latest version of Multipaz to use
 
 coil = "3.3.0"
 androidx-fragment = "1.8.6"
@@ -94,7 +94,7 @@ androidx-fragment = { group = "androidx.fragment", name = "fragment", version.re
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ```
 
-Refer to **[this libs.versions.toml code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/gradle/libs.versions.toml#L41-L48)** for the complete example.
+Refer to **[this libs.versions.toml code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/gradle/libs.versions.toml#L41-L48)** for the complete example.
 
 * Add the following to your module level `build.gradle.kts` files for the `composeApp` module & the `core` module:
 
@@ -173,7 +173,7 @@ kotlin {
 }
 ```
 
-Refer to **[this build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/build.gradle.kts#L13-L78)** for the complete example.
+Refer to **[this build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/build.gradle.kts#L13-L78)** for the complete example.
 
 You might also want to check out other libraries in the Multipaz ecosystem, from Multipaz [here](https://mvnrepository.com/search?q=multipaz).
 
@@ -208,7 +208,7 @@ interface AppContainer {
 }
 ```
 
-Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt)** for the complete example.
+Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt)** for the complete example.
 
 `AppContainerImpl` provides the concrete implementation.
 
@@ -266,14 +266,11 @@ class App {
             return
         }
 
-        MaterialTheme {
-            PromptDialogs(AppContainer.promptModel)
+        val colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+        MaterialTheme(colorScheme = colorScheme) {
+            Surface {
+                PromptDialogs(AppContainer.promptModel)
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
                 NavHost(
                     navController = navController,
                     startDestination = Destination.HomeDestination,
@@ -302,9 +299,9 @@ class App {
 }
 ```
 
-**Note:** You would want to copy-paste [**the Navigation.kt** file](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/Navigation.kt) for the definition of the navigation targets.
+**Note:** You would want to copy-paste [**the Navigation.kt** file](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/Navigation.kt) for the definition of the navigation targets.
 
-Refer to **[this App.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt)** and **[the AppContainerImpl.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt)** for the complete example.
+Refer to **[this App.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt)** and **[the AppContainerImpl.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt)** for the complete example.
 
 ### Define `HomeScreen.kt` Composable
 
@@ -336,7 +333,7 @@ fun HomeScreen(
 }
 ```
 
-Refer to **[this HomeScreen code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L53-L202)** for the complete example.
+Refer to **[this HomeScreen code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L53-L202)** for the complete example.
 
 ### Update `MainActivity.kt`
 
@@ -368,7 +365,7 @@ class MainActivity : FragmentActivity() { // use FragmentActivity
 }
 ```
 
-Refer to **[this MainActivity.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/androidMain/kotlin/org/multipaz/getstarted/MainActivity.kt)** for the complete example.
+Refer to **[this MainActivity.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/androidMain/kotlin/org/multipaz/getstarted/MainActivity.kt)** for the complete example.
 
 ### Update `iOSMain/MainViewController.kt`
 
@@ -382,7 +379,7 @@ fun MainViewController() = ComposeUIViewController {
 }
 ```
 
-Refer to **[this MainViewController.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/composeApp/src/iosMain/kotlin/org/multipaz/getstarted/MainViewController.kt)** for the complete example.
+Refer to **[this MainViewController.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/iosMain/kotlin/org/multipaz/getstarted/MainViewController.kt)** for the complete example.
 
 #### ⚠️ Some gotchas to be aware of (iOS only):
 
@@ -399,4 +396,4 @@ OTHER_LDFLAGS = (
 );
 ```
 
-Refer to **[this project.pbxproj code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/iosApp/iosApp.xcodeproj/project.pbxproj)** for the complete example.
+Refer to **[this project.pbxproj code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/iosApp/iosApp.xcodeproj/project.pbxproj)** for the complete example.

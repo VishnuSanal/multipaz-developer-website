@@ -39,7 +39,7 @@ interface AppContainer {
 }
 ```
 
-Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L21-L22)** for the complete example.
+Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L21-L22)** for the complete example.
 
 ```kotlin
 // core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
@@ -71,4 +71,4 @@ class AppContainerImpl : AppContainer {
 
 By clearly structuring the setup of `DocumentTypeRepository` and `DocumentStore`, you ensure your app is ready to manage identity documents securely and efficiently. Always perform this setup early in your app lifecycle, after initializing storage and secure areas.
 
-Refer to **[this DocumentStore code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L75-L82)** for the complete example.
+Refer to **[this DocumentStore code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L70-L77)** for the complete example.

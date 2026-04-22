@@ -54,7 +54,7 @@ interface AppContainer {
 }
 ```
 
-Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L16-L19)** for the complete example.
+Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L16-L19)** for the complete example.
 
 * Now, override them in the implementation class
 
@@ -74,13 +74,7 @@ class AppContainerImpl : AppContainer {
 
         // Storage
         storage = org.multipaz.util.Platform.nonBackedUpStorage
-        storageTable = storage.getTable(
-            StorageTableSpec(
-                name = CredentialDomains.STORAGE_TABLE_NAME,
-                supportPartitions = false,  // Simple key-value storage
-                supportExpiration = false    // Keys don't auto-expire
-            )
-        )
+        storageTable = storage.getTable(CredentialDomains.storageTableSpec)
         secureArea = org.multipaz.util.Platform.getSecureArea()
         secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
 
@@ -96,16 +90,23 @@ Before proceeding, create the `CredentialDomains` object in the `core` module. T
 // core/src/commonMain/kotlin/.../core/CredentialDomains.kt
 package org.multipaz.getstarted.core
 
+import org.multipaz.storage.StorageTableSpec
+
 object CredentialDomains {
     const val MDOC_USER_AUTH = "mdoc_user_auth"
     const val MDOC_MAC_USER_AUTH = "mdoc_mac_user_auth"
     const val SDJWT_USER_AUTH = "sdjwt_user_auth"
     const val SDJWT_KEYLESS = "sdjwt_keyless"
     const val STORAGE_TABLE_NAME = "TestAppKeys"
+    val storageTableSpec = StorageTableSpec(
+        name = STORAGE_TABLE_NAME,
+        supportPartitions = false,
+        supportExpiration = false
+    )
 
     const val SAMPLE_DOCUMENT_DISPLAY_NAME = "Erika's Driving License"
     const val SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME = "Utopia Driving License"
 }
 ```
 
-Refer to **[this storage code](https://github.com/openwallet-foundation/multipaz-samples/blob/4a3ce5671b4286c18162060558ad78c30f17b063/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L63-L73)** for the complete example.
+Refer to **[this storage code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L64-L68)** for the complete example.
