@@ -47,7 +47,7 @@ kotlin {
 }
 ```
 
-Refer to **[this provisioning build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/feature/provisioning/build.gradle.kts)** for the complete example.
+Refer to **[this provisioning build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/feature/provisioning/build.gradle.kts)** for the complete example.
 
 Also add the dependency in `composeApp/build.gradle.kts`:
 
@@ -63,7 +63,7 @@ kotlin {
 }
 ```
 
-Refer to **[this composeApp build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/build.gradle.kts#L44-L49)** for the complete example.
+Refer to **[this composeApp build.gradle.kts code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/build.gradle.kts#L44-L49)** for the complete example.
 
 ## **Dependencies**
 
@@ -86,7 +86,7 @@ ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "kto
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 ```
 
-Refer to [**this libs.versions.toml code**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/gradle/libs.versions.toml#L50-L56) for the complete example.
+Refer to [**this libs.versions.toml code**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/gradle/libs.versions.toml#L50-L54) for the complete example.
 
 Update `core/build.gradle.kts`:
 
@@ -116,7 +116,7 @@ kotlin {
 }
 ```
 
-Refer to [**this build.gradle.kts code**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/build.gradle.kts#L27-L49) for the complete example.
+Refer to [**this build.gradle.kts code**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/build.gradle.kts#L27-L49) for the complete example.
 
 ### **iOS Setup**
 
@@ -184,7 +184,7 @@ If you prefer to edit the XML directly, add the following to your `Info.plist` f
 </array>
 ```
 
-Refer to **[this Info.plist code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/iosApp/iosApp/Info.plist#L11-L43)** for the complete example.
+Refer to **[this Info.plist code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/iosApp/iosApp/Info.plist#L11-L43)** for the complete example.
 
 #### **Step 2: Configure ContentView.swift**
 
@@ -202,7 +202,7 @@ struct ContentView: View {
 }
 ```
 
-Refer to **[this ContentView.swift code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/iosApp/iosApp/ContentView.swift)** for the complete example.
+Refer to **[this ContentView.swift code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/iosApp/iosApp/ContentView.swift)** for the complete example.
 
 #### **Step 3: Implement URL Handler in MainViewController.kt**
 
@@ -220,7 +220,7 @@ fun HandleUrl(url: String) {
 }
 ```
 
-Refer to **[this MainViewController.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/iosMain/kotlin/org/multipaz/getstarted/MainViewController.kt)** for the complete example.
+Refer to **[this MainViewController.kt code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/iosMain/kotlin/org/multipaz/getstarted/MainViewController.kt)** for the complete example.
 
 #### **Step 4: Build and Run iOS App**
 
@@ -290,7 +290,7 @@ Update `androidMain/AndroidManifest.xml`:
 </application>
 ```
 
-Refer to [**this AndroidManifest.xml code**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/androidMain/AndroidManifest.xml#L52-L118) for the complete example.
+Refer to [**this AndroidManifest.xml code**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/androidMain/AndroidManifest.xml#L52-L118) for the complete example.
 
 ### Choosing a link strategy
 
@@ -341,7 +341,7 @@ class MainActivity : FragmentActivity() {
 }
 ```
 
-Refer to [**this MainActivity.kt code**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/androidMain/kotlin/org/multipaz/getstarted/MainActivity.kt#L27-L47) for the complete example.
+Refer to [**this MainActivity.kt code**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/androidMain/kotlin/org/multipaz/getstarted/MainActivity.kt#L20-L47) for the complete example.
 
 ## **Initialize Issuance in App**
 
@@ -385,7 +385,7 @@ class App {
 }
 ```
 
-Refer to [**this initialization code**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L46-L73) for the complete example.
+Refer to [**this initialization code**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L41-L73) for the complete example.
 
 2. Add URL handling for credential offers and app links:
 
@@ -418,7 +418,7 @@ class App {
 }
 ```
 
-Refer to [**this URL handling code**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L75-L90) for the complete example.
+Refer to [**this URL handling code**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L75-L90) for the complete example.
 
 3. Wire the issuance loop and provisioning bottom sheet in `Content()` composable:
 
@@ -487,7 +487,7 @@ class App {
 
 The `ProvisioningBottomSheet` composable is placed outside the `NavHost` — it overlays the current screen as a bottom sheet when provisioning is active, and dismisses automatically when complete.
 
-Refer to [**this UI implementation code**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L136-L192) for the complete example.
+Refer to [**this UI implementation code**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L136-L192) for the complete example.
 
 4. Implement `httpClientEngineFactory` in `Platform.kt`
 
@@ -496,7 +496,7 @@ Refer to [**this UI implementation code**](https://github.com/openwallet-foundat
 expect val httpClientEngineFactory: HttpClientEngineFactory<*>
 ```
 
-See the [**`commonMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/Platform.kt) file for the complete implementation.
+See the [**`commonMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/Platform.kt) file for the complete implementation.
 
 #### Android Implementation
 
@@ -507,7 +507,7 @@ actual val httpClientEngineFactory: HttpClientEngineFactory<*> by lazy {
 }
 ```
 
-See the [**`androidMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/androidMain/kotlin/org/multipaz/getstarted/core/Platform.kt) file for the complete implementation.
+See the [**`androidMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/src/androidMain/kotlin/org/multipaz/getstarted/core/Platform.kt) file for the complete implementation.
 
 #### iOS Implementation
 
@@ -518,7 +518,7 @@ actual val httpClientEngineFactory: HttpClientEngineFactory<*> by lazy {
 }
 ```
 
-See the [**`iosMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/iosMain/kotlin/org/multipaz/getstarted/core/Platform.kt) file for the complete implementation.
+See the [**`iosMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/src/iosMain/kotlin/org/multipaz/getstarted/core/Platform.kt) file for the complete implementation.
 
 5. Add a button from `HomeScreen` to the Multipaz Issuer Website
 
@@ -555,7 +555,7 @@ fun HomeScreen(
 }
 ```
 
-Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L92-L108)** for the full implementation
+Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L101-L117)** for the full implementation
 
 ## **ProvisioningSupport & OpenID4VCILocalBackend**
 
@@ -634,7 +634,7 @@ class ProvisioningSupport(
 }
 ```
 
-You refer to the [**full `ProvisioningSupport` file here**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/feature/provisioning/src/commonMain/kotlin/org/multipaz/getstarted/provisioning/ProvisioningSupport.kt).
+You refer to the [**full `ProvisioningSupport` file here**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/feature/provisioning/src/commonMain/kotlin/org/multipaz/getstarted/provisioning/ProvisioningSupport.kt).
 
 * `OpenID4VCILocalBackend` implements:
     * `createJwtClientAssertion(authorizationServerIdentifier: String): String`
@@ -663,7 +663,7 @@ class OpenID4VCILocalBackend : OpenID4VCIBackend {
 }
 ```
 
-You can copy-paste the [**`OpenID4VCILocalBackend` file for the complete implementation**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/feature/provisioning/src/commonMain/kotlin/org/multipaz/getstarted/provisioning/OpenID4VCILocalBackend.kt).
+You can copy-paste the [**`OpenID4VCILocalBackend` file for the complete implementation**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/feature/provisioning/src/commonMain/kotlin/org/multipaz/getstarted/provisioning/OpenID4VCILocalBackend.kt).
 
 ## **Wallet back end vs Issuer**
 

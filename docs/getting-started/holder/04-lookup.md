@@ -7,7 +7,9 @@ Once your `DocumentStore` is initialized and populated, you can fetch, list, and
 
 ### Listing and Fetching Documents
 
-You can retrieve all documents stored in the `DocumentStore` using `DocumentStore#listDocuments`, which returns the documents directly.
+The simplest way to render the documents in the store is to use the **`DocumentCarousel`** composable from `multipaz-compose`. It is backed by a **`DocumentModel`**, which observes the `DocumentStore` reactively — once you create the model from your store and document type repository, the carousel updates automatically as documents are added or removed (e.g. after a successful provisioning flow), so you don't need to manually re-fetch and diff a list yourself.
+
+If you do need direct access to the documents (for non-UI logic), `DocumentStore#listDocuments` still returns them.
 
 **Example: Listing Documents**
 
@@ -25,7 +27,7 @@ interface AppContainer {
 }
 ```
 
-Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L31)** for the complete example.
+Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L31)** for the complete example.
 
 ```kotlin
 // core/src/commonMain/kotlin/.../core/AppContainerImpl.kt
@@ -43,121 +45,141 @@ class AppContainerImpl : AppContainer {
 }
 ```
 
-Refer to **[this listDocuments code](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L239-L247)** for the complete example.
+Refer to **[this listDocuments code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L239-L247)** for the complete example.
 
-2: **Implement the UI for listing documents in `HomeScreen` Composable**
+2: **Render the documents in `HomeScreen` using `DocumentCarousel`**
+
+Build a `DocumentModel` from `container.documentStore` and `container.documentTypeRepository` (the latter is wired up alongside the document store — see [Setting Up the DocumentStore](01-storage.md)) and pass it to `DocumentCarousel`. We use `produceState` so model creation runs as a suspend block tied to the composition.
 
 ```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    // ... other parameters
-    documents: List<Document>, // add document list and deletion callbacks as a parameters
-    onDeleteDocument: (Document) -> Unit,
+    // ...
 ) {
     val coroutineScope = rememberCoroutineScope { AppContainer.promptModel }
 
     Column {
         // ...
 
-        if (documents.isNotEmpty()) {
-            Text(
-                modifier = Modifier.padding(4.dp),
-                text = "${documents.size} Documents present:"
+        val documentModel by produceState<DocumentModel?>(null, container) {
+            value = DocumentModel.create(
+                documentStore = container.documentStore,
+                documentTypeRepository = container.documentTypeRepository,
             )
-            documents.forEachIndexed { index, document ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = document.displayName ?: document.identifier,
-                        modifier = Modifier.padding(4.dp)
+        }
+
+        var selectedDocumentId by remember { mutableStateOf<String?>(null) }
+
+        documentModel?.let { model ->
+            DocumentCarousel(
+                documentModel = model,
+                onDocumentClicked = { documentInfo: DocumentInfo ->
+                    selectedDocumentId = documentInfo.document.identifier
+                }
+            )
+
+            selectedDocumentId?.let { id ->
+                ModalBottomSheet(
+                    onDismissRequest = { selectedDocumentId = null },
+                ) {
+                    DocumentDetails(
+                        documentModel = model,
+                        documentStore = container.documentStore,
+                        documentId = id,
+                        onDocumentDeleted = { selectedDocumentId = null },
                     )
-                    // delete button here (explained in next step)
-                }
-            }
-        } else {
-            Text(text = "No documents found.")
-        }
-    }
-}
-```
-
-3: **Update App.kt on `HomeScreen` invocation**
-
-```kotlin
-class App {
-    private val container = AppContainer.getInstance()
-
-    @Composable
-    fun Content() {
-        val documents = remember { mutableStateListOf<Document>() }
-
-        LaunchedEffect(
-            navController.currentDestination,
-            provisioningState
-        ) {
-            val shouldRefresh = navController.currentDestination != null
-
-            if (shouldRefresh) {
-                val currentDocuments = container.listDocuments()
-                if (currentDocuments.size != documents.size) {
-                    documents.clear()
-                    documents.addAll(currentDocuments)
-                }
-            }
-        }
-
-        // ...
-
-        MaterialTheme {
-            Surface {
-                Column {
-                    NavHost {
-                        composable<Destination.HomeDestination> {
-                            HomeScreen(
-                                container = container,
-                                navController = navController,
-                                documents = documents,
-                                onDeleteDocument = {
-                                    documents.remove(it)
-                                },
-                            )
-                        }
-                    }
                 }
             }
         }
     }
 }
-
 ```
 
-### Deleting Documents
+A few notes on the snippet:
 
-To remove a document from the `DocumentStore`, use the `DocumentStore#deleteDocument(identifier: String)` method and provide the document's identifier.
+* `DocumentCarousel` renders each document as a card art tile and exposes an `onDocumentClicked` callback receiving a `DocumentInfo` (which wraps the underlying `Document`).
+* Tapping a card sets `selectedDocumentId` and surfaces a `ModalBottomSheet` that hosts the `DocumentDetails` composable defined in the next section.
 
-**Example: Deleting a Document**
+Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L119-L148)** for the complete example.
 
-You can add the following code to `HomeScreen` Composable to add a small delete button to the listing we implemented above. We use a simple `IconButton` with the default delete icon. We prevent deletion of the default document to ensure the document store is never empty.
+### Showing Document Details and Deleting
+
+Tapping a card in the carousel opens a `ModalBottomSheet` hosting a `DocumentDetails` composable. It displays the document's card art, type, name, and provisioning status, and exposes a delete button. We prevent deletion of the default sample document so the store is never empty.
 
 ```kotlin
-// delete button here (explained in next step)
-if (document.displayName != CredentialDomains.SAMPLE_DOCUMENT_DISPLAY_NAME) {
-    IconButton(
-        content = @Composable {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = null
-            )
-        },
-        onClick = {
-            coroutineScope.launch {
-                container.documentStore.deleteDocument(document.identifier)
-                onDeleteDocument(document)
+@Composable
+private fun DocumentDetails(
+    documentModel: DocumentModel,
+    documentStore: DocumentStore,
+    documentId: String,
+    onDocumentDeleted: () -> Unit,
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val documentInfo = documentModel.documentInfos.collectAsState().value
+        .find { it.document.identifier == documentId }
+
+    if (documentInfo == null) {
+        Text("No document for identifier $documentId")
+        return
+    }
+    val document = documentInfo.document
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Image(
+            modifier = Modifier.height(200.dp),
+            contentScale = ContentScale.FillHeight,
+            bitmap = documentInfo.cardArt,
+            contentDescription = null,
+        )
+        Text(
+            text = document.typeDisplayName ?: "(typeDisplayName not set)",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary,
+        )
+
+        KeyValuePair("Provisioned", if (document.provisioned) "Yes" else "No")
+        KeyValuePair("Document Type", document.typeDisplayName ?: "(typeDisplayName not set)")
+        KeyValuePair("Document Name", document.displayName ?: "(displayName not set)")
+
+        if (document.displayName != CredentialDomains.SAMPLE_DOCUMENT_DISPLAY_NAME)
+            Button(
+                onClick = {
+                    coroutineScope.launch { documentStore.deleteDocument(documentId) }
+                    onDocumentDeleted()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Red,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Delete document")
             }
-        }
-    )
+    }
+}
+
+@Composable
+private fun KeyValuePair(key: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text = key, fontWeight = FontWeight.Bold)
+        Text(text = value)
+    }
 }
 ```
 
-Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L110-L141)** and [**from `App.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/010ae0a68cff09721fd256193139e057848abaf3/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L117-L134) for the complete example.
+Key things to note:
 
-By following these steps, you can efficiently list, fetch, and delete documents managed by your `DocumentStore`, ensuring your application's document management remains clean and up-to-date.
+* `documentModel.documentInfos` is a `StateFlow<List<DocumentInfo>>`, so `collectAsState()` keeps the bottom sheet content live — if the document is deleted from another code path, the lookup will return `null` and you fall through to the empty branch.
+* `DocumentStore#deleteDocument(identifier: String)` is the underlying API for removal; on success the carousel auto-refreshes via `DocumentModel`.
+* Calling `onDocumentDeleted()` clears `selectedDocumentId` in the parent so the bottom sheet dismisses.
+
+Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L211-L274)** for the complete example.
+
+By following these steps, the document list, detail view, and deletion flow stay consistent with the underlying `DocumentStore` automatically — no manual list maintenance required.
