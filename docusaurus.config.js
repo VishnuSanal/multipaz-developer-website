@@ -164,6 +164,11 @@ const config = {
             position: 'left',
           },
           {
+            label: 'Collaborators',
+            to: '/collaborators',
+            position: 'left',
+          },
+          {
             label: 'Showcase',
             to: '/showcase',
             position: 'left',
@@ -173,7 +178,6 @@ const config = {
             to: '/blog',
             position: 'left',
           },
-          
           {
             type: 'html',
             position: 'right',

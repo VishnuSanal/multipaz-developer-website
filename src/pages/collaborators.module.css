@@ -1,0 +1,129 @@
+.main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.main h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.intro {
+  color: var(--ifm-color-emphasis-700);
+  font-size: 1rem;
+  max-width: 660px;
+  margin-bottom: 2rem;
+}
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.35rem;
+  margin: 0 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.hostedBy {
+  margin: 0.2rem 0 0;
+  font-size: 0.875rem;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.cardDescription {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+  color: var(--ifm-color-emphasis-800);
+}
+
+.visitButton {
+  display: inline-block;
+  padding: 0.45rem 1.1rem;
+  background: var(--ifm-color-primary);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.visitButton:hover {
+  opacity: 0.88;
+  color: white;
+  text-decoration: none;
+}
+
+.cta {
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.cta strong {
+  font-size: 1rem;
+}
+
+.cta p {
+  margin: 0.4rem 0 0;
+  font-size: 0.95rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--ifm-color-emphasis-600);
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumb a {
+  color: var(--ifm-color-emphasis-600);
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb a:hover {
+  color: var(--ifm-color-primary);
+}
+
+.breadcrumbSep {
+  color: var(--ifm-color-emphasis-400);
+}
