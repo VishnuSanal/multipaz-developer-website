@@ -1,0 +1,83 @@
+# iOS App Group ID Setup
+
+## Why this is required
+
+When your iOS wallet app and `DocumentProviderExtension` need to share data, both targets must use the same App Group identifier.
+
+This is required for bundles such as:
+
+- `org.multipaz.samples.wallet.cmp.UtopiaSample`
+
+## Important naming distinction in Apple Developer
+
+On the Apple Developer **Identifiers** pages, there are two different values:
+
+1. **Description** (shown in your identifiers list as **Name**)
+   - Example value: `XC org multipaz samples wallet cmp UtopiaSample`
+   - This is the App ID display name, not the App Group identifier.
+2. **App Group identifier**
+   - Usually in the format `group.org.multipaz.samples...`
+   - This is the value you must add to entitlements for app-extension data sharing.
+
+Identifiers list example (where the same string appears in the **Name** column):
+
+<img
+  src={require('@site/static/img/codelabs/advanced-features/apple-identifiers-list.png').default}
+  alt="Apple Developer Identifiers list page"
+  style={{ width: '85%', height: '85%' }}
+/>
+
+## Apply App Group to your App ID
+
+1. Open Apple Developer portal: [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list).
+2. Open the App ID for your bundle (`org.multipaz.samples.wallet.cmp.UtopiaSample`).
+3. On **Edit your App ID Configuration**, scroll to **App Groups**.
+4. Ensure **App Groups** is enabled (checked).
+5. Click **Edit** next to **App Groups**.
+6. Select or create the group ID you want to use (for example `group.org.multipaz.samples.wallet`).
+7. Save changes.
+
+App ID configuration example (scroll to **App Groups** and click **Edit**):
+
+<img
+  src={require('@site/static/img/codelabs/advanced-features/apple-appid-app-groups.png').default}
+  alt="Apple App ID configuration with App Groups capability"
+  style={{ width: '85%', height: '85%' }}
+/>
+
+## Apply the same Group ID in Xcode
+
+1. Open your iOS project in Xcode.
+2. For the app target, go to **Signing & Capabilities** and add **App Groups** (if missing).
+3. Add the exact same App Group identifier selected in Apple Developer.
+4. Repeat for the extension target (`DocumentProviderExtension`) so both targets contain the same group ID.
+
+Xcode example (App Groups capability in **Signing & Capabilities**):
+
+<img
+  src={require('@site/static/img/codelabs/advanced-features/xcode-app-groups-capability.png').default}
+  alt="Xcode Signing and Capabilities showing App Groups"
+  style={{ width: '85%', height: '85%' }}
+/>
+
+## Verify entitlements
+
+Confirm both entitlements files contain the same group in `com.apple.security.application-groups`:
+
+```xml
+<key>com.apple.security.application-groups</key>
+<array>
+    <string>group.org.multipaz.samples.wallet</string>
+</array>
+```
+
+Targets that commonly need this match:
+
+- `iosApp.entitlements`
+- `IdentityDocumentProviderExtension.entitlements`
+
+## Troubleshooting
+
+- If you only set **Description/Name**, sharing will still fail because Description is not an App Group ID.
+- If app and extension use different group IDs, shared container access will fail.
+- If changes do not apply immediately, regenerate profiles in Apple Developer and refresh signing in Xcode.
