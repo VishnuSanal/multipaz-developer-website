@@ -92,7 +92,7 @@ The native credentials verification feature requires the Multipaz DC API library
 `gradle/libs.versions.toml`
 ```toml
 [versions]
-multipaz = "0.97.0" # latest version of Multipaz
+multipaz = "0.99.0" # latest version of Multipaz
 
 [libraries]
 multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }

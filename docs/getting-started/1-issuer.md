@@ -239,6 +239,14 @@ Update `androidMain/AndroidManifest.xml`:
 <!-- Networking -->
 <uses-permission android:name="android.permission.INTERNET" />
 
+<!-- Required on Android 11+ for Multipaz's OAuth flow to discover a Chrome Custom Tabs
+     provider via CustomTabsClient.getPackageName() -->
+<queries>
+    <intent>
+        <action android:name="android.support.customtabs.action.CustomTabsService" />
+    </intent>
+</queries>
+
 <application ...>
     <activity
         android:name=".MainActivity"
@@ -475,6 +483,8 @@ class App {
 
                 ProvisioningBottomSheet(
                     provisioningModel = provisioningModel,
+                    clientPreferences = CompletableDeferred(provisioningSupport.getOpenID4VCIClientPreferences()),
+                    backend = CompletableDeferred(provisioningSupport.getOpenID4VCIBackend()),
                     waitForRedirectLinkInvocation = { state ->
                         provisioningSupport.waitForAppLinkInvocation(state)
                     }
@@ -485,7 +495,7 @@ class App {
 }
 ```
 
-The `ProvisioningBottomSheet` composable is placed outside the `NavHost` — it overlays the current screen as a bottom sheet when provisioning is active, and dismisses automatically when complete.
+The `ProvisioningBottomSheet` composable is placed outside the `NavHost` — it overlays the current screen as a bottom sheet when provisioning is active, and dismisses automatically when complete. `clientPreferences` and `backend` are passed as `kotlinx.coroutines.CompletableDeferred` so the bottom sheet can suspend until the wallet back-end is ready.
 
 Refer to [**this UI implementation code**](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/App.kt#L136-L192) for the complete example.
 

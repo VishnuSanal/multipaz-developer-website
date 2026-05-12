@@ -7,7 +7,7 @@ Once your `DocumentStore` is initialized and populated, you can fetch, list, and
 
 ### Listing and Fetching Documents
 
-The simplest way to render the documents in the store is to use the **`DocumentCarousel`** composable from `multipaz-compose`. It is backed by a **`DocumentModel`**, which observes the `DocumentStore` reactively — once you create the model from your store and document type repository, the carousel updates automatically as documents are added or removed (e.g. after a successful provisioning flow), so you don't need to manually re-fetch and diff a list yourself.
+The simplest way to render the documents in the store is to use the **`CardCarousel`** composable from `multipaz-compose`. It is backed by a **`DocumentModel`**, which observes the `DocumentStore` reactively — once you create the model from your store and document type repository, the carousel updates automatically as documents are added or removed (e.g. after a successful provisioning flow), so you don't need to manually re-fetch and diff a list yourself.
 
 If you do need direct access to the documents (for non-UI logic), `DocumentStore#listDocuments` still returns them.
 
@@ -47,9 +47,9 @@ class AppContainerImpl : AppContainer {
 
 Refer to **[this listDocuments code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L239-L247)** for the complete example.
 
-2: **Render the documents in `HomeScreen` using `DocumentCarousel`**
+2: **Render the documents in `HomeScreen` using `CardCarousel`**
 
-Build a `DocumentModel` from `container.documentStore` and `container.documentTypeRepository` (the latter is wired up alongside the document store — see [Setting Up the DocumentStore](01-storage.md)) and pass it to `DocumentCarousel`. We use `produceState` so model creation runs as a suspend block tied to the composition.
+Build a `DocumentModel` from `container.documentStore` and `container.documentTypeRepository` (the latter is wired up alongside the document store — see [Setting Up the DocumentStore](01-storage.md)) and feed its `documentInfos` flow to `CardCarousel`. We use `produceState` so model creation runs as a suspend block tied to the composition, and `collectAsState()` on the model's `documentInfos` to drive the carousel reactively.
 
 ```kotlin
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,20 +69,18 @@ fun HomeScreen(
             )
         }
 
-        var selectedDocumentId by remember { mutableStateOf<String?>(null) }
+        var selectedDocumentId by rememberSaveable { mutableStateOf<String?>(null) }
 
         documentModel?.let { model ->
-            DocumentCarousel(
-                documentModel = model,
-                onDocumentClicked = { documentInfo: DocumentInfo ->
-                    selectedDocumentId = documentInfo.document.identifier
-                }
+            val documentInfos by model.documentInfos.collectAsState()
+
+            CardCarousel(
+                cardInfos = documentInfos,
+                onCardClicked = { selectedDocumentId = it.identifier },
             )
 
             selectedDocumentId?.let { id ->
-                ModalBottomSheet(
-                    onDismissRequest = { selectedDocumentId = null },
-                ) {
+                ModalBottomSheet(onDismissRequest = { selectedDocumentId = null }) {
                     DocumentDetails(
                         documentModel = model,
                         documentStore = container.documentStore,
@@ -98,8 +96,8 @@ fun HomeScreen(
 
 A few notes on the snippet:
 
-* `DocumentCarousel` renders each document as a card art tile and exposes an `onDocumentClicked` callback receiving a `DocumentInfo` (which wraps the underlying `Document`).
-* Tapping a card sets `selectedDocumentId` and surfaces a `ModalBottomSheet` that hosts the `DocumentDetails` composable defined in the next section.
+* `CardCarousel` renders each entry from the `documentInfos` list as a card art tile and exposes an `onCardClicked` callback that receives the `DocumentInfo` for the tapped card — its `identifier` matches the underlying `Document`'s identifier.
+* `selectedDocumentId` is held with `rememberSaveable` so the selection survives configuration changes (e.g. rotation), and surfaces a `ModalBottomSheet` that hosts the `DocumentDetails` composable defined in the next section.
 
 Refer to **[this code from `HomeScreen.kt`](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L119-L148)** for the complete example.
 
