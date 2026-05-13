@@ -54,7 +54,7 @@ interface AppContainer {
 }
 ```
 
-Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L16-L19)** for the complete example.
+Refer to **[this AppContainer code](https://github.com/openwallet-foundation/multipaz-samples/blob/497e0284defe3e6e4671bacd0e6202d8c55191ad/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainer.kt#L16-L19)** for the complete example.
 
 * Now, override them in the implementation class
 
@@ -94,9 +94,14 @@ import org.multipaz.storage.StorageTableSpec
 
 object CredentialDomains {
     const val MDOC_USER_AUTH = "mdoc_user_auth"
+    const val MDOC_SOFTWARE = "mdoc_software"
+
     const val MDOC_MAC_USER_AUTH = "mdoc_mac_user_auth"
+
     const val SDJWT_USER_AUTH = "sdjwt_user_auth"
+    const val SDJWT_SOFTWARE = "sdjwt_software"
     const val SDJWT_KEYLESS = "sdjwt_keyless"
+
     const val STORAGE_TABLE_NAME = "TestAppKeys"
     val storageTableSpec = StorageTableSpec(
         name = STORAGE_TABLE_NAME,
@@ -109,4 +114,4 @@ object CredentialDomains {
 }
 ```
 
-Refer to **[this storage code](https://github.com/openwallet-foundation/multipaz-samples/blob/7ca3e8d064a95d88f00947137043b1d96789d27c/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L64-L68)** for the complete example.
+Refer to **[this storage code](https://github.com/openwallet-foundation/multipaz-samples/blob/497e0284defe3e6e4671bacd0e6202d8c55191ad/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L62-L66)** for the complete example.
