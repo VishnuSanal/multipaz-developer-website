@@ -482,7 +482,14 @@ fun W3CDCCredentialsRequestButton(
     storageTable: StorageTable,
     promptModel: PromptModel,
     readerTrustManager: TrustManagerLocal,
-    text: String = "W3CDC Credentials Request",
+    text: AnnotatedString = buildAnnotatedString {
+        withStyle(style = SpanStyle(fontSize = 14.sp)) {
+            append("W3CDC Credentials Request")
+        }
+        withStyle(style = SpanStyle(fontSize = 12.sp)) {
+            append("\nmDL Driving License")
+        }
+    },
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -492,19 +499,17 @@ fun W3CDCCredentialsRequestButton(
         metadata: ShowResponseMetadata
     ) -> Unit
 ) {
-    val requestOptions = mutableListOf<RequestEntry>()
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
 
-    // Prepare request options from available document types
-    LaunchedEffect(Unit) {
+    // Prepare request options from available document types.
+    // This sample hardcodes a request for an mDL (Driving License).
+    val requestOptions = remember {
         val documentType = DrivingLicense.getDocumentType()
-        documentType.cannedRequests.forEach { sampleRequest ->
-            requestOptions.add(
-                RequestEntry(
-                    displayName = "${documentType.displayName}: ${sampleRequest.displayName}",
-                    documentType = documentType,
-                    sampleRequest = sampleRequest
-                )
+        documentType.cannedRequests.map { sampleRequest ->
+            RequestEntry(
+                displayName = "${documentType.displayName}: ${sampleRequest.displayName}",
+                documentType = documentType,
+                sampleRequest = sampleRequest
             )
         }
     }
@@ -559,10 +564,24 @@ fun W3CDCCredentialsRequestButton(
             }
         }
     }) {
-        Text(text = text)
+        Text(
+            text = text,
+            textAlign = TextAlign.Center
+        )
     }
 }
 ```
+
+:::tip Requested document type
+This sample is hardcoded to request an **mDL (Driving License)** - it builds its
+`requestOptions` from `DrivingLicense.getDocumentType()` and uses the first canned
+request. Other document types are a drop-in replacement: substitute the corresponding
+`DocumentType` (e.g. `EUPersonalID`) and the rest of the W3C DC flow works unchanged.
+
+Note that you may also need to update the [response display screen](#add-the-response-display-screen)
+and the resulting changes to render the new document type's claims
+(namespaces, data elements, and any images).
+:::
 
 You can refer to this [**`W3CDCCredentialsRequestButton` Composable Code**](https://github.com/openwallet-foundation/multipaz-samples/blob/497e0284defe3e6e4671bacd0e6202d8c55191ad/MultipazGettingStartedSample/feature/verification/src/commonMain/kotlin/org/multipaz/getstarted/verification/W3CDCCredentialsRequestButton.kt#L67-L141) for the complete implementation.
 
