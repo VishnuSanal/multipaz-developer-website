@@ -77,14 +77,13 @@ single<DocumentStore> {
 
 ### **Step 5: Configure `DocumentTypeRepository` in Koin**
 
-The `DocumentTypeRepository` registers supported document types that your wallet can handle. For this codelab, we'll register `DrivingLicense` and `Loyalty` document types:
+The `DocumentTypeRepository` registers supported document types that your wallet can handle. For this codelab, we'll register the `DrivingLicense` document type:
 
 ```kotlin
 //TODO: define DocumentTypeRepository in Koin module
 single<DocumentTypeRepository> {
     DocumentTypeRepository().apply {
         addDocumentType(DrivingLicense.getDocumentType())
-        addDocumentType(Loyalty.getDocumentType())
     }
 }
 ```
