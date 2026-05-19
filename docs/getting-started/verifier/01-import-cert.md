@@ -17,7 +17,7 @@ To ensure your verifier app can validate the authenticity of documents from hold
 ### Download the IACA Certificate Multipaz Getting Started Sample uses
 
 * Download the IACA Certificate we used to generate the credential to the reader device
-    * [**iaca_certificate.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/497e0284defe3e6e4671bacd0e6202d8c55191ad/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/iaca_certificate.pem)
+    * [**iaca_certificate.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/iaca_certificate.pem)
 
 ### Import the PEM into Mutipaz Identity Reader App
 
