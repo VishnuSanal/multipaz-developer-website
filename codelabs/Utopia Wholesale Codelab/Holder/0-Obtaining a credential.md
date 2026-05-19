@@ -119,6 +119,25 @@ The Android app uses intent filters to handle deep links. Configure three types 
 </intent-filter>
 ```
 
+**4. Custom Tabs Package Visibility (Required for OAuth)**
+
+The OAuth authorization step opens the issuer's login page in a Chrome Custom Tab. On
+Android 11 (API 30) and above, [package visibility](https://developer.android.com/training/package-visibility)
+rules prevent the app from discovering a Custom Tabs provider unless it is declared. Add the
+following `<queries>` element as a direct child of the `<manifest>` element (a sibling of
+`<application>`), otherwise the OAuth flow will fail to launch a browser:
+
+```xml
+<!-- TODO: add custom tab query permission -->
+<!-- Required on Android 11+ for Multipaz's OAuth flow to discover a Chrome Custom Tabs
+     provider via CustomTabsClient.getPackageName() -->
+<queries>
+    <intent>
+        <action android:name="android.support.customtabs.action.CustomTabsService" />
+    </intent>
+</queries>
+```
+
 #### **Step 2: Handle URLs in MainActivity**
 
 In `MainActivity.kt`, the app handles incoming URLs:
@@ -461,7 +480,7 @@ val text = when (provisioningState) {
             ProvisioningModel.ProcessingAuthorization -> "Processing authorization..."
             ProvisioningModel.Authorized -> "Authorized"
             ProvisioningModel.RequestingCredentials -> "Requesting credentials..."
-            ProvisioningModel.CredentialsIssued -> "Credentials issued"
+            is ProvisioningModel.CredentialsIssued -> "Credentials issued"
             is ProvisioningModel.Error -> throw IllegalStateException()
             is ProvisioningModel.Authorizing -> throw IllegalStateException()
         }
@@ -528,7 +547,7 @@ LaunchedEffect(Unit) {
 
 LaunchedEffect(provisioningModel) {
     provisioningModel.state.collect { state ->
-        if (state == ProvisioningModel.CredentialsIssued) {
+        if (state is ProvisioningModel.CredentialsIssued) {
             registrationManager.refresh("credentials issued")
         }
     }

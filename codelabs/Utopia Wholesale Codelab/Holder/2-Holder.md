@@ -190,10 +190,10 @@ single<PresentmentSource> {
         documentTypeRepository = get(),
         preferSignatureToKeyAgreement = true,
         // Match domains used when storing credentials via OpenID4VCI
-        domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-        domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-        domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-        domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH,
+        domainsMdocSignature = listOf(TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH),
+        domainsMdocKeyAgreement = listOf(TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH),
+        domainsKeylessSdJwt = listOf(TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS),
+        domainsKeyBoundSdJwt = listOf(TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH),
     )
 }
 ```
@@ -208,10 +208,10 @@ single<PresentmentSource> {
   * `documentTypeRepository` - For managing document types
 * `preferSignatureToKeyAgreement = true` prioritizes signature-based authentication over key agreement.
 * Domain configurations match those used during credential storage via OpenID4VCI to ensure proper credential binding:
-  * `domainMdocSignature` - Domain for mDoc signature-based credentials
-  * `domainMdocKeyAgreement` - Domain for mDoc MAC/key agreement credentials
-  * `domainKeylessSdJwt` - Domain for keyless SD-JWT credentials
-  * `domainKeyBoundSdJwt` - Domain for key-bound SD-JWT credentials
+  * `domainsMdocSignature` - List of domains for mDoc signature-based credentials
+  * `domainsMdocKeyAgreement` - List of domains for mDoc MAC/key agreement credentials
+  * `domainsKeylessSdJwt` - List of domains for keyless SD-JWT credentials
+  * `domainsKeyBoundSdJwt` - List of domains for key-bound SD-JWT credentials
 
 The `PresentmentModel` (which manages the presentation lifecycle and state transitions like `IDLE`, `CONNECTING`, `COMPLETED`, etc.) is also configured in the Koin module and can be injected wherever needed in your app.
 
