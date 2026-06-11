@@ -530,25 +530,42 @@ actual val httpClientEngineFactory: HttpClientEngineFactory<*> by lazy {
 
 See the [**`iosMain/Platform.kt`**](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/core/src/iosMain/kotlin/org/multipaz/getstarted/core/Platform.kt) file for the complete implementation.
 
-5. Add a button from `HomeScreen` to the Multipaz Issuer Website
+5. Add a button to the Multipaz Issuer Website
+
+The "Issue an mDoc" button lives in the `DocumentSection` introduced in the [document management guide](holder/04-lookup.md), right below the credential carousel. We expose an `onIssueClicked` callback from `DocumentSection` and let `HomeScreen` open the issuer URL:
 
 ```kotlin
 @Composable
 fun HomeScreen(
     // ...
 ) {
-
     val uriHandler = LocalUriHandler.current
 
-    Column {
-        // existing UI for presentment
+    Scaffold(/* ... */) { innerPadding ->
+        Column(/* ... */) {
+            DocumentSection(
+                container = container,
+                onIssueClicked = { uriHandler.openUri("https://issuer.multipaz.org") },
+            )
+
+            // PresentmentSection(...)
+        }
+    }
+}
+
+@Composable
+private fun DocumentSection(
+    container: AppContainer,
+    onIssueClicked: () -> Unit,
+) {
+    SectionCard(title = "Your wallet", /* ... */) {
+        // ... credential carousel from the document management guide
 
         // button to redirect to the issuer
-        Button(
-            modifier = Modifier.padding(16.dp),
-            onClick = {
-                uriHandler.openUri("https://issuer.multipaz.org")
-            }) {
+        FilledTonalButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onIssueClicked,
+        ) {
             Text(
                 buildAnnotatedString {
                     withStyle(style = SpanStyle(fontSize = 14.sp)) {
@@ -644,7 +661,7 @@ class ProvisioningSupport(
 }
 ```
 
-You refer to the [**full `ProvisioningSupport` file here**](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/feature/provisioning/src/commonMain/kotlin/org/multipaz/getstarted/provisioning/ProvisioningSupport.kt).
+You can refer to the [**full `ProvisioningSupport` file here**](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/feature/provisioning/src/commonMain/kotlin/org/multipaz/getstarted/provisioning/ProvisioningSupport.kt).
 
 * `OpenID4VCILocalBackend` implements:
     * `createJwtClientAssertion(authorizationServerIdentifier: String): String`

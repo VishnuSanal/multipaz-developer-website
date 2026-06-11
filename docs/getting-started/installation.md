@@ -250,23 +250,30 @@ class App {
         val navController = rememberNavController()
         val isInitialized = remember { mutableStateOf(false) }
 
+        val colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+
         if (!isInitialized.value) {
             CoroutineScope(Dispatchers.Main).launch {
                 init()
                 isInitialized.value = true
             }
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Initializing...")
+            MaterialTheme(colorScheme = colorScheme) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(Modifier.height(16.dp))
+                        Text(text = "Initializing…")
+                    }
+                }
             }
             return
         }
 
-        val colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
         MaterialTheme(colorScheme = colorScheme) {
             Surface {
                 PromptDialogs(AppContainer.promptModel)

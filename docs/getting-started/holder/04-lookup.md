@@ -47,21 +47,46 @@ class AppContainerImpl : AppContainer {
 
 Refer to **[this listDocuments code](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L237-L245)** for the complete example.
 
-2: **Render the documents in `HomeScreen` using `CardCarousel`**
+2: **Render the documents in a `DocumentSection` within `HomeScreen`**
 
-Build a `DocumentModel` from `container.documentStore` and `container.documentTypeRepository` (the latter is wired up alongside the document store — see [Setting Up the DocumentStore](01-storage.md)) and feed its `documentInfos` flow to `CardCarousel`. We use `produceState` so model creation runs as a suspend block tied to the composition, and `collectAsState()` on the model's `documentInfos` to drive the carousel reactively.
+`HomeScreen` is laid out as a `Scaffold` with a top app bar and a vertically scrolling `Column` that stacks the screen's sections. Each section is a self-contained composable — the first is the **document section**, which lists the credentials in the store; the presentment and identity-verification sections are added in later guides.
+
+Inside `DocumentSection` we build a `DocumentModel` from `container.documentStore` and `container.documentTypeRepository` (the latter is wired up alongside the document store — see [Setting Up the DocumentStore](01-storage.md)) and feed its `documentInfos` flow to `CardCarousel`. We use `produceState` so model creation runs as a suspend block tied to the composition, and `collectAsState()` on the model's `documentInfos` to drive the carousel reactively.
 
 ```kotlin
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    container: AppContainer,
     // ...
 ) {
-    val coroutineScope = rememberCoroutineScope { AppContainer.promptModel }
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(title = { Text("Multipaz Getting Started") })
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            DocumentSection(container = container)
+        }
+    }
+}
 
-    Column {
-        // ...
-
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DocumentSection(
+    container: AppContainer,
+) {
+    SectionCard(
+        title = "Your wallet",
+        subtitle = "The credentials currently stored on this device.",
+    ) {
         val documentModel by produceState<DocumentModel?>(null, container) {
             value = DocumentModel.create(
                 documentStore = container.documentStore,
@@ -71,7 +96,10 @@ fun HomeScreen(
 
         var selectedDocumentId by rememberSaveable { mutableStateOf<String?>(null) }
 
-        documentModel?.let { model ->
+        val model = documentModel
+        if (model == null) {
+            LoadingRow("Loading documents…")
+        } else {
             val documentInfos by model.documentInfos.collectAsState()
 
             CardCarousel(
@@ -94,8 +122,52 @@ fun HomeScreen(
 }
 ```
 
+Each section is wrapped in a small `SectionCard` — a titled `ElevatedCard` — and slow-loading content shows a `LoadingRow` while it resolves. Both are shared helpers reused by the presentment and identity-verification sections in the later guides:
+
+```kotlin
+/** A titled, elevated container used to group related actions on the home screen. */
+@Composable
+private fun SectionCard(
+    title: String,
+    subtitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun LoadingRow(label: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.height(20.dp).width(20.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+```
+
 A few notes on the snippet:
 
+* `HomeScreen` composes the screen from independent section composables — `DocumentSection` here, plus `PresentmentSection` and `FaceMatchSection` added in later guides — stacked inside a single scrolling `Column`.
+* Building the `DocumentModel` is a suspend operation, so `documentModel` is `null` on the first composition. While it resolves we show a small `LoadingRow` (a `CircularProgressIndicator` next to a label) and swap in the carousel once the model is ready.
 * `CardCarousel` renders each entry from the `documentInfos` list as a card art tile and exposes an `onCardClicked` callback that receives the `DocumentInfo` for the tapped card — its `identifier` matches the underlying `Document`'s identifier.
 * `selectedDocumentId` is held with `rememberSaveable` so the selection survives configuration changes (e.g. rotation), and surfaces a `ModalBottomSheet` that hosts the `DocumentDetails` composable defined in the next section.
 

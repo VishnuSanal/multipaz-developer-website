@@ -143,7 +143,7 @@ These certificate files can be downloaded from the following links. They should 
 With this setup, your holder app will trust the following Multipaz applications as valid readers:
 - **OWF Multipaz TestApp** (https://apps.multipaz.org) - For testing and development
 - **Multipaz Identity Reader** (https://apps.multipaz.org) - For production devices with secure boot
-- **Multipaz Identity Reader (Untrusted Devices & Apps)** (https://github.com/openwallet-foundation/multipaz-identity-reader) - For apps compiled directly from the Mutipaz Identity Reader for development purposes or devices with unlocked bootloaders
+- **Multipaz Identity Reader (Untrusted Devices & Apps)** (https://github.com/openwallet-foundation/multipaz-identity-reader) - For apps compiled directly from the Multipaz Identity Reader for development purposes or devices with unlocked bootloaders
 - **Multipaz Web Verifier** (https://verifier.multipaz.org/) - For requesting and verifying mDocs from the web
 
 Add additional trusted readers as needed by importing their certificates. By configuring TrustManager with trusted reader certificates, you ensure that only authorized verifier apps can access user credentials during presentment.

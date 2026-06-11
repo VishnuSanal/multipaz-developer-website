@@ -32,4 +32,4 @@ Multipaz distinguishes between two types of trust:
   githubUrl="https://github.com/openwallet-foundation/multipaz-identity-reader/blob/0565229028eeb06d349ccd27f4916aba679e201b/composeApp/src/commonMain/kotlin/org/multipaz/identityreader/ShowResultsScreen.kt#L154-L216"
 />
 
-The above section deals with the verification of trust of the received document in the Mutipaz Identity Reader app.
+The above section deals with the verification of trust of the received document in the Multipaz Identity Reader app.

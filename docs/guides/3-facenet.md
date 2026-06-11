@@ -304,32 +304,75 @@ Refer to **[this initialization code](https://github.com/openwallet-foundation/m
 
 Use Multipaz Compose permission helpers to request the camera permission at runtime. This works cross-platform with platform-specific implementations under the hood.
 
+The identity verification entry point on the home screen is a small `FaceMatchSection` composable. Like the other home-screen sections, it lives inside a `SectionCard`, and it progressively reveals the right action based on the current state — first asking for the camera permission, then offering the **Selfie Check**, and finally the **Face Matching** step once a face has been enrolled. It is purely stateless: it renders a button for the current step and reports user intent back to `HomeScreen` through callbacks.
+
+```kotlin
+@Composable
+private fun FaceMatchSection(
+    faceExtractorReady: Boolean,
+    hasCapturedFace: Boolean,
+    cameraGranted: Boolean,
+    onRequestCamera: () -> Unit,
+    onStartSelfie: () -> Unit,
+    onStartMatching: () -> Unit,
+) {
+    SectionCard(
+        title = "Identity verification",
+        subtitle = "Capture a selfie, then match it against the live camera feed.",
+    ) {
+        when {
+            !faceExtractorReady -> LoadingRow("Preparing face matching…")
+
+            !cameraGranted -> Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onRequestCamera,
+            ) {
+                Text("Grant camera permission")
+            }
+
+            !hasCapturedFace -> Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onStartSelfie,
+            ) {
+                Text("Selfie Check")
+            }
+
+            else -> Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onStartMatching,
+            ) {
+                Text("Face Matching")
+            }
+        }
+    }
+}
+```
+
+`HomeScreen` owns the camera permission state and launches the request when the permission branch is tapped:
+
 ```kotlin
 @Composable
 fun HomeScreen(
-    // ... 
+    // ...
 ) {
     val cameraPermissionState = rememberCameraPermissionState()
 
-    Column {
+    Scaffold(/* ... */) { innerPadding ->
+        Column(/* ... */) {
+            // DocumentSection(...)
 
-        // ... existing UI for presentation
+            // PresentmentSection(...)
 
-        if (faceExtractorReady) {
-            when {
-                !cameraPermissionState.isGranted -> {
-                    Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                cameraPermissionState.launchPermissionRequest()
-                            }
-                        }
-                    ) {
-                        Text("Grant Camera Permission for Selfie Check")
-                    }
-                }
-                // ... facenet flow continues when the permission is granted
-            }
+            FaceMatchSection(
+                faceExtractorReady = faceExtractorReady,
+                hasCapturedFace = faceCaptured.value != null,
+                cameraGranted = cameraPermissionState.isGranted,
+                onRequestCamera = {
+                    coroutineScope.launch { cameraPermissionState.launchPermissionRequest() }
+                },
+                onStartSelfie = { /* open the selfie capture flow — see below */ },
+                onStartMatching = { /* open the face matching flow — see below */ },
+            )
         }
     }
 }
@@ -349,39 +392,51 @@ Refer to **[this permission request code](https://github.com/openwallet-foundati
 
 Use the built-in Selfie Check flow to capture a normalized face image for enrollment, then compute and store its FaceNet embedding. This entire flow works identically on both platforms.
 
+The selfie capture and (later) face matching UIs fill the entire screen, so they run as **full-screen takeovers** rather than inline in the scrolling home content — nesting a screen-filling camera preview inside a vertically scrollable container would offer it infinite height. `HomeScreen` tracks which flow (if any) is active with a small enum and renders the matching full-screen composable, returning early so the home content is hidden while a flow is active:
+
 ```kotlin
+private enum class BiometricFlow { None, Selfie, Matching }
+
 @Composable
 fun HomeScreen(
-    // ... 
+    // ...
 ) {
-    // 1) Prepare ViewModel and state
-    val selfieCheckViewModel: SelfieCheckViewModel =
-        remember { SelfieCheckViewModel(identityIssuer) }
-
-    var showCamera by remember { mutableStateOf(false) }
     val faceCaptured = remember { mutableStateOf<FaceEmbedding?>(null) }
+    var biometricFlow by remember { mutableStateOf(BiometricFlow.None) }
 
-    Column {
-        if (faceExtractorReady) {
-            when {
-                !cameraPermissionState.isGranted -> {
-                    // ...  request camera permission button
-                }
+    Scaffold(/* ... */) { innerPadding ->
 
-                faceCaptured.value == null -> {
-                    SelfieCheckSection(
-                        faceExtractor = faceExtractor,
-                        identityIssuer = identityIssuer,
-                        onFaceCaptured = { embedding ->
-                            faceCaptured.value = embedding
-                        }
-                    )
-                }
-
-                else -> {
-                    // Face matching flow (covered in next section)
-                }
+        // Camera capture flows are full-screen takeovers and must live outside the
+        // scrolling home content.
+        when (biometricFlow) {
+            BiometricFlow.Selfie -> {
+                SelfieCaptureScreen(
+                    faceExtractor = faceExtractor,
+                    identityIssuer = identityIssuer,
+                    onFaceCaptured = { embedding -> faceCaptured.value = embedding },
+                    onClose = { biometricFlow = BiometricFlow.None },
+                )
+                return@Scaffold
             }
+
+            BiometricFlow.Matching -> {
+                // Face matching flow (covered in next section)
+            }
+
+            BiometricFlow.None -> Unit
+        }
+
+        Column(/* scrolling home content */) {
+            // ...
+
+            FaceMatchSection(
+                faceExtractorReady = faceExtractorReady,
+                hasCapturedFace = faceCaptured.value != null,
+                cameraGranted = cameraPermissionState.isGranted,
+                onRequestCamera = { /* launch permission request */ },
+                onStartSelfie = { biometricFlow = BiometricFlow.Selfie },
+                onStartMatching = { biometricFlow = BiometricFlow.Matching },
+            )
         }
     }
 }
@@ -389,31 +444,30 @@ fun HomeScreen(
 
 Refer to **[this selfie check code](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L184-L192)** for the complete example.
 
-### Selfie Check Section Composable
+### Selfie Capture Screen Composable
 
-In the modularized sample, the selfie check logic is extracted into `SelfieCheckSection` in the `feature/biometrics` module:
+In the sample, the selfie capture logic is extracted into `SelfieCaptureScreen` in the `feature/biometrics` module. It fills the available height and reports the captured embedding (and a `Close` request) back through callbacks:
 
 ```kotlin
 // feature/biometrics/src/commonMain/kotlin/.../biometrics/SelfieCheckSection.kt
 @Composable
-fun SelfieCheckSection(
+fun SelfieCaptureScreen(
     faceExtractor: FaceExtractor,
     identityIssuer: String,
-    onFaceCaptured: (FaceEmbedding?) -> Unit
+    onFaceCaptured: (FaceEmbedding?) -> Unit,
+    onClose: () -> Unit,
 ) {
-    var showCamera by remember { mutableStateOf(false) }
     val selfieCheckViewModel: SelfieCheckViewModel =
         remember { SelfieCheckViewModel(identityIssuer) }
 
-    if (!showCamera) {
-        Button(onClick = { showCamera = true }) {
-            Text("Selfie Check")
-        }
-    } else {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         SelfieCheck(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.wrapContentSize().weight(1f),
             onVerificationComplete = {
-                showCamera = false
                 if (selfieCheckViewModel.capturedFaceImage != null) {
                     val embedding = getFaceEmbeddings(
                         image = decodeImage(selfieCheckViewModel.capturedFaceImage!!.toByteArray()),
@@ -422,15 +476,17 @@ fun SelfieCheckSection(
                     onFaceCaptured(embedding)
                 }
                 selfieCheckViewModel.resetForNewCheck()
+                onClose()
             },
             viewModel = selfieCheckViewModel,
             identityIssuer = identityIssuer
         )
 
-        Button(
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             onClick = {
-                showCamera = false
                 selfieCheckViewModel.resetForNewCheck()
+                onClose()
             }
         ) {
             Text("Close")
@@ -457,64 +513,57 @@ Refer to **[this selfie check flow composable code](https://github.com/openwalle
 
 Once an enrollment embedding exists, we open a live camera preview using the "Camera" composable, detect faces per frame, align and crop the face region, compute embeddings, and calculate the similarity with the embeddings of the image we captured during selfie check.
 
+Like the selfie capture flow, face matching is a full-screen takeover driven by the `BiometricFlow` enum on `HomeScreen`:
+
 ```kotlin
 @Composable
 fun HomeScreen(
     // ... 
 ) {
-    var showFaceMatching by remember { mutableStateOf(false) }
-    var similarity by remember { mutableStateOf(0f) }
+    Scaffold(/* ... */) { innerPadding ->
+        when (biometricFlow) {
+            // ... BiometricFlow.Selfie -> SelfieCaptureScreen(...)
 
-    Column {
-        if (faceExtractorReady) {
-            when {
-                !cameraPermissionState.isGranted -> {
-                    // ... request camera permission button
-                }
-
-                faceCaptured.value == null -> {
-                    // ... show selfie check
-                }
-
-                else -> {
-                    FaceMatchingSection(
-                        faceExtractor = faceExtractor,
-                        faceCaptured = faceCaptured
-                    )
-                }
+            BiometricFlow.Matching -> {
+                FaceMatchingScreen(
+                    faceExtractor = faceExtractor,
+                    faceCaptured = faceCaptured,
+                    onClose = { biometricFlow = BiometricFlow.None },
+                )
+                return@Scaffold
             }
+
+            BiometricFlow.None -> Unit
         }
+
+        // ... scrolling home content
     }
 }
 ```
 
 Refer to **[live face matching flow](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/composeApp/src/commonMain/kotlin/org/multipaz/getstarted/HomeScreen.kt#L194-L199)** for the complete example.
 
-### Face Matching Section Composable
+### Face Matching Screen Composable
 
-In the modularized sample, the face matching logic is extracted into `FaceMatchingSection` in the `feature/biometrics` module:
+In the sample, the face matching logic is extracted into `FaceMatchingScreen` in the `feature/biometrics` module. The `Camera` preview fills the available height, and a `LinearProgressIndicator` visualizes the live similarity score:
 
 ```kotlin
 // feature/biometrics/src/commonMain/kotlin/.../biometrics/FaceMatchingSection.kt
 @Composable
-fun FaceMatchingSection(
+fun FaceMatchingScreen(
     faceExtractor: FaceExtractor,
-    faceCaptured: MutableState<FaceEmbedding?>
+    faceCaptured: MutableState<FaceEmbedding?>,
+    onClose: () -> Unit,
 ) {
-    var showFaceMatching by remember { mutableStateOf(false) }
     var similarity by remember { mutableStateOf(0f) }
 
-    if (!showFaceMatching) {
-        Button(onClick = { showFaceMatching = true }) {
-            Text("Face Matching")
-        }
-    } else {
-        Text("Similarity: ${(similarity * 100).roundToInt()}%")
-
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Camera(
-            modifier = Modifier
-                .fillMaxSize(0.5f)
-                .padding(64.dp),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             cameraSelection = CameraSelection.DEFAULT_FRONT_CAMERA,
             captureResolution = CameraCaptureResolution.MEDIUM,
             showCameraPreview = true,
@@ -535,7 +584,7 @@ fun FaceMatchingSection(
 
                     val faceEmbedding = getFaceEmbeddings(faceImage, faceExtractor.faceMatchModel)
 
-                    if (faceEmbedding != null) {
+                    if (faceCaptured.value != null && faceEmbedding != null) {
                         val newSimilarity = faceCaptured.value!!.calculateSimilarity(faceEmbedding)
                         similarity = newSimilarity
                     }
@@ -543,10 +592,21 @@ fun FaceMatchingSection(
             }
         }
 
-        Button(
+        LinearProgressIndicator(
+            modifier = Modifier.fillMaxWidth(),
+            progress = { similarity.coerceIn(0f, 1f) },
+        )
+
+        Text(
+            text = "Similarity: ${(similarity * 100).roundToInt()}%",
+            style = MaterialTheme.typography.titleMedium,
+        )
+
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
             onClick = {
-                showFaceMatching = false
                 faceCaptured.value = null
+                onClose()
             }
         ) {
             Text("Close")

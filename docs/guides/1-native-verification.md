@@ -753,44 +753,50 @@ You can refer to this [**Reader Initialization Code**](https://github.com/openwa
 
 Now that you have completed the core implementation, we can integrate it into the app's UI.
 
-### Display the Request Button Composable in `HomeScreen`
+### Display the Request Button in the `PresentmentSection`
+
+The button belongs to the `PresentmentSection` introduced in the [Presentation guide](../getting-started/holder/06-presentation.md) — it sits below `PresentmentHomeSection` and is gated to Android, where the W3C Digital Credentials API is available:
 
 ```kotlin
 @Composable
-fun HomeScreen(
-    // ...
+private fun PresentmentSection(
+    container: AppContainer,
+    documents: List<Document>,
+    navController: NavController,
 ) {
+    SectionCard(title = "Share a credential", /* ... */) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // ... PresentmentHomeSection(...)
 
-    Column {
-        // existing UI for presentment
-
-        // W3C Digital Credentials API is currently only available on Android
-        if (isAndroid() && documents.isNotEmpty()) {
-            W3CDCCredentialsRequestButton(
-                promptModel = AppContainer.promptModel,
-                storageTable = container.storageTable,
-                readerTrustManager = container.readerTrustManager,
-                showResponse = { vpToken: JsonObject?,
-                                 deviceResponse: DataItem?,
-                                 sessionTranscript: DataItem,
-                                 nonce: ByteString?,
-                                 eReaderKey: EcPrivateKey?,
-                                 metadata: ShowResponseMetadata ->
-                    navController.navigate(
-                        buildShowResponseDestination(
-                            vpToken = vpToken,
-                            deviceResponse = deviceResponse,
-                            sessionTranscript = sessionTranscript,
-                            nonce = nonce,
-                            eReaderKey = eReaderKey,
-                            metadata = metadata,
+            // W3C Digital Credentials API is currently only available on Android
+            if (isAndroid() && documents.isNotEmpty()) {
+                W3CDCCredentialsRequestButton(
+                    promptModel = AppContainer.promptModel,
+                    storageTable = container.storageTable,
+                    readerTrustManager = container.readerTrustManager,
+                    showResponse = { vpToken: JsonObject?,
+                                     deviceResponse: DataItem?,
+                                     sessionTranscript: DataItem,
+                                     nonce: ByteString?,
+                                     eReaderKey: EcPrivateKey?,
+                                     metadata: ShowResponseMetadata ->
+                        navController.navigate(
+                            buildShowResponseDestination(
+                                vpToken = vpToken,
+                                deviceResponse = deviceResponse,
+                                sessionTranscript = sessionTranscript,
+                                nonce = nonce,
+                                eReaderKey = eReaderKey,
+                                metadata = metadata,
+                            )
                         )
-                    )
-                }
-            )
+                    }
+                )
+            }
         }
-
-        // existing UI for facenet
     }
 }
 ```

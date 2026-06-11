@@ -237,9 +237,19 @@ fun PresentmentHomeSection(
                 }
             },
             showTransacting = { reset ->
-                Text("Transacting")
-                Button(onClick = { reset() }) {
-                    Text("Cancel")
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = "Sharing your credential…",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    OutlinedButton(onClick = { reset() }) {
+                        Text("Cancel")
+                    }
                 }
             },
             showQrCode = { uri, reset ->
@@ -254,10 +264,27 @@ fun PresentmentHomeSection(
                 if (error is CancellationException) {
                     reset()
                 } else {
-                    if (error != null) {
-                        Text("Something went wrong: $error")
-                    } else {
-                        Text("The data was shared")
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = if (error != null) "Something went wrong" else "Credential shared",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (error != null) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                        if (error != null) {
+                            Text(
+                                text = error.message ?: error.toString(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                     LaunchedEffect(Unit) {
                         delay(1.5.seconds)
@@ -270,23 +297,42 @@ fun PresentmentHomeSection(
 }
 ```
 
-Then in `HomeScreen`, you simply use the extracted composable:
+Then in `HomeScreen`, the presentment UI lives in its own `PresentmentSection` — a `SectionCard` that hosts `PresentmentHomeSection` (and, on Android, the W3C Digital Credentials button added in the native verification guide):
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/.../HomeScreen.kt
 @Composable
 fun HomeScreen(
     container: AppContainer,
-    modifier: Modifier = Modifier
     // ...
 ) {
-    Column {
-        // ...
-        PresentmentHomeSection(
-            presentmentSource = container.presentmentSource,
-            promptModel = AppContainer.promptModel,
-            modifier = Modifier.weight(1f)
-        )
+    Scaffold(/* ... */) { innerPadding ->
+        Column(/* ... */) {
+            // DocumentSection(...) — added in the Lookup and Manage Documents guide
+
+            PresentmentSection(container = container)
+        }
+    }
+}
+
+@Composable
+private fun PresentmentSection(
+    container: AppContainer,
+) {
+    SectionCard(
+        title = "Share a credential",
+        subtitle = "Present your mDoc to a nearby reader or to a website.",
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            PresentmentHomeSection(
+                presentmentSource = container.presentmentSource,
+                promptModel = AppContainer.promptModel,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 ```
@@ -508,7 +554,7 @@ By following these steps, you configure your Android app to support secure NFC-b
 To test the NFC reader flow, we need two devices.
 
 * One device with the the holder app we are currently working on (multipaz getting started sample)
-* And another device with a verifier app installed; say, Mutipaz Identity Reader or Multipaz TestApp (you can download them from https://apps.multipaz.org).
+* And another device with a verifier app installed; say, Multipaz Identity Reader or Multipaz TestApp (you can download them from https://apps.multipaz.org).
 
 The reader flow includes the following steps:
 
