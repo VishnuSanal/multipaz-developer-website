@@ -8,11 +8,11 @@ sidebar_position: 1
 Learn how to implement a Verifier app using the Multipaz SDK to request and validate verifiable credentials from users, enabling secure and privacy-preserving identity verification.
 
 **Note:**
-The reference implementation can be found in the [Mutipaz Identity Reader](https://github.com/openwallet-foundation/multipaz-identity-reader) sample app.
+The reference implementation can be found in the [Multipaz Identity Reader](https://github.com/openwallet-foundation/multipaz-identity-reader) sample app.
 
 The Verifier implementation consists of several key components:
 
-- **[Import Issuer Certificate](./import-cert)** - How to Import an IACA Certificate to the Mutipaz Identity Reader app
+- **[Import Issuer Certificate](./import-cert)** - How to Import an IACA Certificate to the Multipaz Identity Reader app
 - **[Issuer Trust](./issuer-trust)** - Issuer trust ensures that credentials presented by a holder app are authentic and issued by trusted authorities.
 - **[Read QR Code](./read-qr)** - How to read a QR code
 
