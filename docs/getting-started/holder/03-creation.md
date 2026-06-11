@@ -22,7 +22,7 @@ val validFrom = now
 val validUntil = now + 365.days
 ```
 
-Refer to **[this timestamp code](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L80-L84)** for the complete example.
+Refer to **[this timestamp code](https://github.com/openwallet-foundation/multipaz-samples/blob/3f65d0c88e97c7d0ade2b9ac80ded625a23cd553/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L80-L84)** for the complete example.
 
 #### 2. Generate IACA Certificate
 
@@ -35,7 +35,7 @@ val iacaCert =
 
 These certificate files can be downloaded from the following links. They should be placed inside `core/src/commonMain/composeResources/files`:
 
-* [**iaca_certificate.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/iaca_certificate.pem)
+* [**iaca_certificate.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/3f65d0c88e97c7d0ade2b9ac80ded625a23cd553/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/iaca_certificate.pem)
 
 We are embedding IACA certificate into the app right now. In a production environment you'll them load from a server.
 
@@ -60,7 +60,7 @@ val dsCert = MdocUtil.generateDsCertificate(
 )
 ```
 
-Refer to **[this DS certificate code](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L86-L99)** for the complete example.
+Refer to **[this DS certificate code](https://github.com/openwallet-foundation/multipaz-samples/blob/3f65d0c88e97c7d0ade2b9ac80ded625a23cd553/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L86-L99)** for the complete example.
 
 #### 4. Creating a Document
 
@@ -77,7 +77,7 @@ if (documentStore.listDocuments().isEmpty()) {
 }
 ```
 
-Refer to **[this document creation code](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L101-L124)** for the complete example.
+Refer to **[this document creation code](https://github.com/openwallet-foundation/multipaz-samples/blob/3f65d0c88e97c7d0ade2b9ac80ded625a23cd553/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L101-L124)** for the complete example.
 
 #### 5. Create the mDoc Credential
 
@@ -110,7 +110,7 @@ if (documentStore.listDocuments().isEmpty()) {
 
 By following these steps, you can securely create and provision an mDoc credential, ready to be managed and used within your application.
 
-Refer to **[this MdocCredential creation code](https://github.com/openwallet-foundation/multipaz-samples/blob/84f40a73f9fb4bd6f4d38c00d5130df622f0e938/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L77-L124)** for the complete example.
+Refer to **[this MdocCredential creation code](https://github.com/openwallet-foundation/multipaz-samples/blob/3f65d0c88e97c7d0ade2b9ac80ded625a23cd553/MultipazGettingStartedSample/core/src/commonMain/kotlin/org/multipaz/getstarted/core/AppContainerImpl.kt#L77-L124)** for the complete example.
 
 :::info Looking for a more realistic flow?
 The example above uses helpful defaults for quick onboarding. If you're exploring how to construct credentials manually — including MSO creation, issuer namespaces, and authentication — check out this [advanced sample](https://github.com/dzuluaga/multipaz-getting-started-testing/blob/v1.1.0-age-verification/composeApp/src/commonMain/kotlin/org/example/project/App.kt#L539-L727) created by a core contributor.
