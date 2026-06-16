@@ -144,6 +144,8 @@ To include a new **file from the multipaz repo**, add its path to the `MULTIPAZ_
 | Variable | Description |
 |---|---|
 | `ASK_AI_API_URL` | URL of the deployed Ask AI API (e.g., your Vercel deployment URL) |
+| `WEBSITE_ENVIRONMENT` | `PRODUCTION` to serve at `/` (custom domain), `DEVELOPMENT` to serve at `/{repo-name}/` |
+| `BUILD_KDOCS` | Set to `false` to skip API reference KDoc generation for faster builds (see [Skipping KDoc Generation](#skipping-kdoc-generation-faster-builds)). Optional; defaults to building KDocs |
 
 ### Deploying the API server to Vercel
 
@@ -192,6 +194,26 @@ GitHub Actions Setup
 
 1. In Multipaz Repository => [.github/workflows/trigger-docusaurus-update.yml](https://github.com/openwallet-foundation/multipaz/blob/main/.github/workflows/trigger-docusaurus-update.yml)
 2. In Multipaz Developer Website Repository => [.github/workflows/docs.yml](https://github.com/openwallet-foundation/multipaz-developer-website/blob/main/.github/workflows/docs.yml)
+
+### Skipping KDoc Generation (faster builds)
+
+Generating the API reference KDocs (`./gradlew dokkaGenerate` for both the
+`multipaz` and `multipaz-extras` repos) is by far the slowest part of the build.
+The `BUILD_KDOCS` flag lets you skip it — useful for forks and quick test
+deployments that don't need the API reference. When skipped, the site still
+builds and deploys; only the `/kdocs` and `/kdocs-extras` API reference pages are
+omitted (links into them will 404 on that deployment).
+
+There are two ways to control it:
+
+| How | Scope | Effect |
+|---|---|---|
+| **`build_kdocs` checkbox** on the manual *Run workflow* dialog (Actions → Build and Deploy Docusaurus with KDocs → Run workflow) | A single manual run | Tick to build, untick to skip. **Overrides the repository variable.** |
+| **`BUILD_KDOCS` repository variable** (Settings → Secrets and variables → Actions → **Variables** → New repository variable) | All automatic runs (push / `repository_dispatch`) | Set to `false` to permanently skip KDoc generation. Any other value (or unset) builds them. |
+
+`BUILD_KDOCS` is a repository **variable**, not a secret — no secret needs to be
+configured for this. The checkbox is authoritative on manual runs; the variable
+only governs automatic runs.
 
 ### Required Repository Settings
 
