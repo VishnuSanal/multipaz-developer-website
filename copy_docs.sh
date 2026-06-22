@@ -2,11 +2,25 @@ MULTIPAZ_REPO="multipaz-repo"
 EXTRAS_REPO="extras-repo"
 DOCUSAURUS_REPO="docusaurus-repo"
 
-cp -R $MULTIPAZ_REPO/build/dokka/html/* $DOCUSAURUS_REPO/static/kdocs/
-echo "Multipaz KDocs copied to Docusaurus kdocs/ directory"
+# KDoc copying is gated on BUILD_KDOCS (set by CI). When CI disables
+# KDoc generation for faster builds, the copy is skipped entirely.
+if [ "$BUILD_KDOCS" != "false" ]; then
+  if [ ! -d "$MULTIPAZ_REPO/build/dokka/html" ]; then
+    echo "ERROR: Multipaz KDocs not found at $MULTIPAZ_REPO/build/dokka/html" >&2
+    exit 1
+  fi
+  cp -R $MULTIPAZ_REPO/build/dokka/html/* $DOCUSAURUS_REPO/static/kdocs/
+  echo "Multipaz KDocs copied to Docusaurus kdocs/ directory"
 
-cp -R $EXTRAS_REPO/build/dokka/html/* $DOCUSAURUS_REPO/static/kdocs-extras/
-echo "Multipaz Extras KDocs copied to Docusaurus kdocs-extras/ directory"
+  if [ ! -d "$EXTRAS_REPO/build/dokka/html" ]; then
+    echo "ERROR: Multipaz Extras KDocs not found at $EXTRAS_REPO/build/dokka/html" >&2
+    exit 1
+  fi
+  cp -R $EXTRAS_REPO/build/dokka/html/* $DOCUSAURUS_REPO/static/kdocs-extras/
+  echo "Multipaz Extras KDocs copied to Docusaurus kdocs-extras/ directory"
+else
+  echo "Skipping KDocs copy (BUILD_KDOCS=false)"
+fi
 
 cp $MULTIPAZ_REPO/CHANGELOG.md                $DOCUSAURUS_REPO/changelog/0-changelog.md
 

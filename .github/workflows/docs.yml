@@ -5,6 +5,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      build_kdocs:
+        description: 'Generate API reference KDocs with Dokka (disable for faster CI)'
+        type: boolean
+        default: true
   repository_dispatch:
     types: [multipaz-repo-updated, extras-repo-updated]
 
@@ -21,6 +26,17 @@ jobs:
   build:
     name: Build Docusaurus with KDocs
     runs-on: ubuntu-latest
+    env:
+      # Whether to build the API reference KDocs ('true') or skip the slow Dokka
+      # generation ('false').
+      #   - On a manual run, the "build_kdocs" checkbox is authoritative and overrides
+      #     everything else (tick to build, untick to skip).
+      #   - On automatic runs (push / repository_dispatch), KDocs are built unless the
+      #     repository variable BUILD_KDOCS is set to 'false' (e.g. on a fork) to
+      #     permanently skip them.
+      # build_kdocs is a boolean input, so it's matched against both the boolean and
+      # string forms to stay robust regardless of how the value is rendered.
+      BUILD_KDOCS: ${{ github.event_name == 'workflow_dispatch' && ((inputs.build_kdocs == true || inputs.build_kdocs == 'true') && 'true' || 'false') || (vars.BUILD_KDOCS == 'false' && 'false' || 'true') }}
     steps:
       - name: Checkout Docusaurus Repository
         uses: actions/checkout@v4
@@ -38,6 +54,7 @@ jobs:
 
       - name: Get Multipaz Repo Commit Hash
         id: multipaz-commit-hash
+        if: env.BUILD_KDOCS == 'true'
         run: |
           cd multipaz-repo
           COMMIT_HASH=$(git rev-parse HEAD)
@@ -46,12 +63,14 @@ jobs:
 
       - name: Cache Multipaz KDocs
         id: cache-multipaz-kdocs
+        if: env.BUILD_KDOCS == 'true'
         uses: actions/cache@v3
         with:
           path: multipaz-repo/build/dokka
           key: kdocs-${{ steps.multipaz-commit-hash.outputs.commit_hash }}
 
       - name: Checkout Multipaz Extras Repository
+        if: env.BUILD_KDOCS == 'true'
         uses: actions/checkout@v4
         with:
           repository: openwallet-foundation/multipaz-extras
@@ -62,6 +81,7 @@ jobs:
 
       - name: Get Extras Repo Commit Hash
         id: extras-commit-hash
+        if: env.BUILD_KDOCS == 'true'
         run: |
           cd extras-repo
           COMMIT_HASH=$(git rev-parse HEAD)
@@ -70,12 +90,14 @@ jobs:
 
       - name: Cache Extras KDocs
         id: cache-extras-kdocs
+        if: env.BUILD_KDOCS == 'true'
         uses: actions/cache@v3
         with:
           path: extras-repo/build/dokka
           key: kdocs-${{ steps.extras-commit-hash.outputs.commit_hash }}
 
       - name: Set up JDK
+        if: env.BUILD_KDOCS == 'true'
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
@@ -83,14 +105,14 @@ jobs:
           cache: 'gradle'
 
       - name: Generate Multipaz KDocs with Dokka
-        if: steps.cache-multipaz-kdocs.outputs.cache-hit != 'true'
+        if: env.BUILD_KDOCS == 'true' && steps.cache-multipaz-kdocs.outputs.cache-hit != 'true'
         run: |
           cd multipaz-repo
           ./gradlew dokkaGenerate
           echo "KDocs generated successfully"
 
       - name: Generate Extras KDocs with Dokka
-        if: steps.cache-extras-kdocs.outputs.cache-hit != 'true'
+        if: env.BUILD_KDOCS == 'true' && steps.cache-extras-kdocs.outputs.cache-hit != 'true'
         run: |
           cd extras-repo
           ./gradlew dokkaGenerate
@@ -104,6 +126,7 @@ jobs:
           cache-dependency-path: docusaurus-repo/package-lock.json
 
       - name: Create API directories in Docusaurus static folder
+        if: env.BUILD_KDOCS == 'true'
         run: |
           mkdir -p docusaurus-repo/static/kdocs
           mkdir -p docusaurus-repo/static/kdocs-extras
