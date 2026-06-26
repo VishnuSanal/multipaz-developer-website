@@ -56,9 +56,7 @@
             items: [
               'Utopia Wholesale Codelab/Advanced Features/W3C DC API Implementation',
               'Utopia Wholesale Codelab/Advanced Features/Request Multiple Credentials with DCQL',
-              'Utopia Wholesale Codelab/Advanced Features/iOS App Group ID Setup',
-              'Utopia Wholesale Codelab/Advanced Features/Deploying to Google Cloud Run',
-              'Utopia Wholesale Codelab/Advanced Features/Replacing JWK'
+              'Utopia Wholesale Codelab/Advanced Features/iOS App Group ID Setup'
             ],
             collapsed: false,
             collapsible: true,
@@ -66,9 +64,28 @@
         ],
         collapsed: false,
         collapsible: true,
+      },
+      {
+        type: 'category',
+        label: 'Utopia Universe Servers Codelab',
+        link: {
+          type: 'doc',
+          id: 'Utopia Universe Servers Codelab/index',
+        },
+        items: [
+          'Utopia Universe Servers Codelab/Before You Begin',
+          'Utopia Universe Servers Codelab/Get Set Up',
+          'Utopia Universe Servers Codelab/Run the Bundle',
+          'Utopia Universe Servers Codelab/Issue Credentials',
+          'Utopia Universe Servers Codelab/Verify and Pay',
+          'Utopia Universe Servers Codelab/Extend the Servers',
+          'Utopia Universe Servers Codelab/Deploying to Google Cloud Run'
+        ],
+        collapsed: false,
+        collapsible: true,
       }
     ],
-  
+
   };
   
   export default sidebars;

@@ -4,7 +4,7 @@
 // There are various equivalent ways to declare your Docusaurus config.
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
-import {themes as prismThemes} from 'prism-react-renderer';
+import { themes as prismThemes } from 'prism-react-renderer';
 
 require('dotenv').config();
 
@@ -53,7 +53,7 @@ const config = {
         /* docs: {
           sidebarPath: './sidebars.js'
         }, */
-        docs:false,
+        docs: false,
         blog: {
           showReadingTime: true,
           blogTitle: 'Multipaz Blog',
@@ -81,7 +81,7 @@ const config = {
     [
       '@docusaurus/plugin-content-docs',
       {
-        id: 'contributing', 
+        id: 'contributing',
         path: 'contributing',
         routeBasePath: 'contributing',
       },
@@ -263,8 +263,14 @@ const config = {
         theme: prismThemes.github,
         darkTheme: prismThemes.dracula,
       },
+      mermaid: {
 
+      },
     }),
+  markdown: {
+    mermaid: true,
+  },
+  themes: ['@docusaurus/theme-mermaid'],
 };
 
 export default config;
