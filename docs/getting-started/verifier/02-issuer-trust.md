@@ -1,35 +1,36 @@
 ---
-title: 🏢 Issuer Trust
+title: 💳 Create a Payment Request
 sidebar_position: 3
 ---
 
 import ThemedIframe from '../../../src/components/ThemedIframe';
 
-Issuer trust ensures that credentials presented by a holder app are authentic and issued by trusted authorities. This is critical for verifier apps, which must validate the provenance of documents received from other devices.
+Before asking a holder to present a payment credential, the POS reserves a pending transaction with
+the terminal backend. It then builds an ISO/IEC 18013-5
+[`DeviceRequest`](https://developer.multipaz.org/kdocs/multipaz/org.multipaz.mdoc.request/index.html)
+that asks for only the claims needed for the receipt and includes `transaction_data` containing the
+exact payment details.
 
-### **TrustManager Implementations**
+The holder device signs this transaction data as part of the response. That binds the customer's
+authorization to the transaction ID, amount, currency, and payee—not merely to a generic request.
 
-Multipaz uses the `TrustManager` interface to manage trust relationships. The following implementations are available:
-
-* **LocalTrustManager:** Uses locally stored files to back trust.
-* **VicalTrustManager:** Implements trust using VICAL, in compliance with ISO/IEC 18013-5.
-* **CompositeTrustManager:** Allows you to stack multiple trust managers for flexible trust verification.
-
-#### **Types of Trust**
-
-Multipaz distinguishes between two types of trust:
-
-* **Issuer Trust:**
-    * Used by verifier apps.
-    * Verifies the credentials of documents received from holder apps on other devices.
-    * Relies on trusted issuer certificates (PEMs).
-* **Reader Trust:**
-    * Used by holder apps.
-    * Verifies the identity of verifier (reader) apps requesting credentials.
-    * This was already handled in the [holder/reader-trust section](../holder/reader-trust)
+## Reserve and bind the transaction
 
 <ThemedIframe
-  githubUrl="https://github.com/openwallet-foundation/multipaz-identity-reader/blob/0565229028eeb06d349ccd27f4916aba679e201b/composeApp/src/commonMain/kotlin/org/multipaz/identityreader/ShowResultsScreen.kt#L154-L216"
+  githubUrl="https://github.com/openwallet-foundation/multipaz-samples/blob/b73a59b02aa0b4f98076da00ab2ef30c91e90b66/MultipazWholesalePOS/shared/src/commonMain/kotlin/org/multipaz/pos/proximity/VerificationProximityTransferScreen.kt#L278-L325"
 />
 
-The above section deals with the verification of trust of the received document in the Multipaz Identity Reader app.
+**What this block does:** It reserves a server-side transaction, serializes its amount and payee as
+payment transaction data, and attaches that data to the requested DPC. The session transcript
+binds this request to the active proximity exchange.
+
+Adapt these values for your merchant:
+
+- `CARD_DOCTYPE` and namespace — the credential type your terminal accepts.
+- Requested claims — request the minimum data required for the payment and receipt.
+- `TERMINAL_PAYEE_NAME`, `TERMINAL_PAYEE_ID`, and currency — values the holder should see and authorize.
+- `payeeAccount` — the account that the authoritative payment service credits.
+
+Do not treat the returned data as sufficient proof by itself. The records server must verify issuer
+trust, the device signature, and that the signed transaction matches the reservation before it
+settles the payment.

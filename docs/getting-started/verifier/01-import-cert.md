@@ -1,39 +1,47 @@
 ---
-title: 📥 Import Issuer Certificate
+title: 🔐 Configure Terminal Trust
 sidebar_position: 2
 ---
 
 import ThemedIframe from '../../../src/components/ThemedIframe';
 
-To ensure your verifier app can validate the authenticity of documents from holders, configure the `TrustManager` with trusted issuer certificates. This enhances security and ensures compliance with digital credential standards.
+The POS terminal has two distinct trust boundaries:
 
-## Steps to Import an IACA Certificate to the [Multipaz Identity Reader](https://github.com/openwallet-foundation/multipaz-identity-reader) app
+- The **terminal backend** authenticates the POS app using device attestation and the configured app
+  package/signing-certificate digest.
+- The **records server** verifies the payment credential's issuer chain and the holder's signature
+  over the payment transaction data.
 
-### Install the Multipaz Identity Reader app
+Keeping the payment-processor key on the terminal backend is essential: distributing it in every
+POS application build would allow a compromised terminal to impersonate the merchant.
 
-* Download from [apps.multipaz.org](http://apps.multipaz.org/)
-* Or build it yourself from the [source](https://github.com/openwallet-foundation/multipaz-identity-reader).
+## Connect to the terminal backend
 
-### Download the IACA Certificate Multipaz Getting Started Sample uses
-
-* Download the IACA Certificate we used to generate the credential to the reader device
-    * [**iaca_certificate.pem**](https://raw.githubusercontent.com/openwallet-foundation/multipaz-samples/4dfbd40d4455db062c84288b336fa9b71b7486c8/MultipazGettingStartedSample/core/src/commonMain/composeResources/files/iaca_certificate.pem)
-
-### Import the PEM into Multipaz Identity Reader App
-
-* Open the navigation drawer
-* Go to **Settings**
-* Select **Trusted issuers**
-* Tap the add floating button (bottom right)
-* Click **import certificate**
-* Select the PEM file you just downloaded
-
-### Scan the document's QR code
-
-* The app will trust the document if the issuer is recognized.
+[`RpcAuthorizedDeviceClient`](https://developer.multipaz.org/kdocs/multipaz/org.multipaz.rpc.client/index.html)
+establishes the authenticated app-to-backend connection. The backend validates the
+[device attestation](https://developer.multipaz.org/kdocs/multipaz/org.multipaz.device/index.html)
+before it exposes the payment RPC interface.
 
 <ThemedIframe
-  githubUrl="https://github.com/openwallet-foundation/multipaz-identity-reader/blob/0565229028eeb06d349ccd27f4916aba679e201b/composeApp/src/commonMain/kotlin/org/multipaz/identityreader/TrustedIssuersScreen.kt#L157-L162"
+  githubUrl="https://github.com/openwallet-foundation/multipaz-samples/blob/b73a59b02aa0b4f98076da00ab2ef30c91e90b66/MultipazWholesalePOS/shared/src/commonMain/kotlin/org/multipaz/pos/payment/RpcPaymentSettler.kt#L22-L42"
 />
 
-The above section deals with the loading of the IACA certs to the TrustManager in the Multipaz Identity Reader app.
+**What this block does:** It opens an attested RPC session and retains the generated payment client
+only when registration succeeds. Put the backend URL and merchant account in configuration, rather
+than hard-coding them throughout UI code.
+
+## Keep the payment key out of the app
+
+The backend forwards approved calls to the records server, signing as the payment processor. This
+is where the money-moving key belongs.
+
+<ThemedIframe
+  githubUrl="https://github.com/openwallet-foundation/multipaz-samples/blob/b73a59b02aa0b4f98076da00ab2ef30c91e90b66/MultipazWholesalePOS/terminalBackend/src/main/kotlin/org/multipaz/pos/terminal/TerminalPaymentProcessor.kt#L23-L62"
+/>
+
+**What this block does:** It accepts only calls authorized by the terminal backend, then forwards
+them to the records server using the backend's payment-processor identity. The POS client never
+receives that identity's private key.
+
+For production, require hardware-backed attestation, use TLS, store the processor key in managed
+key storage or an HSM, and enroll the terminal with the records server's real trust hierarchy.
