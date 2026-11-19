@@ -2,7 +2,8 @@
   {
     "repo": "VishnuSanal/multipaz-utopia",
     "workflows": [
-      { "file": "missing.yml", "label": "Missing test", "steps": ["Fail if Detekt failed"] }
+      { "file": "test-unit.yml", "label": "Test unit", "steps": ["Fail if Detekt failed"] },
+      { "file": "missing-2.yml", "label": "Missing test", "steps": ["Fail if Detekt failed"] }
     ]
   }
 ]
