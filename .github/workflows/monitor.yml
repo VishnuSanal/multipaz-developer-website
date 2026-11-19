@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  MENTION: "@VishnuSanal @hanluOMH @TheBlackBit"
-  ISSUE: 118
+  MENTION: "@VishnuSanal"
+  ISSUE: 1
   GH_TOKEN: ${{ github.token }}
   GH_REPO: ${{ github.repository }}
 
